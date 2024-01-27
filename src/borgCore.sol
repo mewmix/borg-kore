@@ -1,31 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-////////////////////////////////////////////////////////////////////////////////
-///      ___  ___     _        _           _____                     _       ///
-///      |  \/  |    | |      | |         |  __ \                   | |      ///
-///      | .  . | ___| |_ __ _| | _____  _| |  \/_   _  __ _ _ __ __| |      ///
-///      | |\/| |/ _ \ __/ _` | |/ _ \ \/ / | __| | | |/ _` | '__/ _` |      ///
-///      | |  | |  __/ || (_| | |  __/>  <| |_\ \ |_| | (_| | | | (_| |      ///
-///      \_|  |_/\___|\__\__,_|_|\___/_/\_\\____/\__,_|\__,_|_|  \__,_|      ///
-///                                                                          ///
-/// @title MetaLex Guard                                                     ///
-/// @notice This contract is a transfer Guard for Gnosis Safe Contracts.     ///
-/// @dev (This is just a sample for a skills evaluation)                     ///
-////////////////////////////////////////////////////////////////////////////////
-
 import "safe-contracts/base/GuardManager.sol";
 import "safe-contracts/interfaces/IERC165.sol";
 import "solady/auth/Ownable.sol";
 
-contract metaLexGuard is BaseGuard, Ownable {
+contract borgCore is BaseGuard, Ownable {
 
     ////////////////////////////////////////////////////////////////////////////////
     /// Error Messages
     ////////////////////////////////////////////////////////////////////////////////
-    error metaLexGuard_InvalidRecepient();
-    error metaLexGuard_InvalidContract();
-    error metaLexGuard_AmountOverLimit();
+    error BORG_CORE_InvalidRecepient();
+    error BORG_CORE_InvalidContract();
+    error BORG_CORE_AmountOverLimit();
 
     ////////////////////////////////////////////////////////////////////////////////
     /// Whitelist Structs
@@ -91,10 +78,10 @@ contract metaLexGuard is BaseGuard, Ownable {
         if (value > 0 && data.length == 0) {
             // Native Gas transfer
             if(!whitelistedRecepients[to].approved) {
-                revert metaLexGuard_InvalidRecepient();
+                revert BORG_CORE_InvalidRecepient();
             }
             if(value > whitelistedRecepients[to].transactionLimit) {
-                revert metaLexGuard_AmountOverLimit();
+                revert BORG_CORE_AmountOverLimit();
             }
          } else if (data.length >= 4 && whitelistedContracts[to].approved) {
 
@@ -107,15 +94,15 @@ contract metaLexGuard is BaseGuard, Ownable {
                 // Pull the tx amount from the call data
                 uint256 amount = abi.decode(data[36:68], (uint256));
                 if(!whitelistedRecepients[destination].approved) {
-                   revert metaLexGuard_InvalidRecepient();
+                   revert BORG_CORE_InvalidRecepient();
                 }
                 if((amount > whitelistedRecepients[destination].transactionLimit) || (amount > whitelistedContracts[to].transactionLimit)) {
-                 revert metaLexGuard_AmountOverLimit();
+                 revert BORG_CORE_AmountOverLimit();
                 }
             }
          }
          else {
-            revert metaLexGuard_InvalidContract();
+            revert BORG_CORE_InvalidContract();
          }
     }
 

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
-import "../src/metalexGuard.sol";
+import "../src/borgCore.sol";
 import "solady/tokens/ERC20.sol";
 
 contract ProjectTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
-  metaLexGuard guard;
+  bogrCore core;
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
 
@@ -23,13 +23,13 @@ contract ProjectTest is Test {
 
   /// Set our initial state: (All other tests are in isolation but share this state)
   /// 1. Set up the safe
-  /// 2. Set up the guard with the safe as the owner
-  /// 3. Allow the safe as a contract on the guard
+  /// 2. Set up the core with the safe as the owner
+  /// 3. Allow the safe as a contract on the core
   /// 4. Set balances for tests
   function setUp() public {
     safe = IGnosisSafe(MULTISIG);
-    guard = new metaLexGuard(MULTISIG);
-    executeSingle(getAddContractGuardData(address(guard), address(guard), 2 ether));
+    core = new borgCore(MULTISIG);
+    executeSingle(getAddContractGuardData(address(core), address(core), 2 ether));
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
     deal(address(usdc), MULTISIG, 2 ether);
@@ -44,7 +44,7 @@ contract ProjectTest is Test {
   /// @dev Ensure that the Guard contract is correctly whitelisted as a contract for the Safe.
   function testGuardSaftey() public {
     executeBatch(createTestBatch());
-    executeSingle(getAddContractGuardData(address(guard), MULTISIG, 2 ether));
+    executeSingle(getAddContractGuardData(address(core), MULTISIG, 2 ether));
   }
 
   /// @dev An ERC20 transfer with no whitelists set should fail.
@@ -56,24 +56,24 @@ contract ProjectTest is Test {
   /// @dev An ERC20 transfer that is correctly whitelisted should pass.
   function testPassOnDai() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(guard), address(dai), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, .01 ether));
+    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
   /// @dev An ERC20 payment that is over the limit should revert.
   function testFailOnDaiOverpayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(guard), address(dai), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, .01 ether));
+    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .1 ether));
   }
 
   /// @dev An ERC20 payment for a token that hasn't been whitelisted should fail.
   function testFailOnUSDC() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(guard), address(dai), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, .01 ether));
+    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
     executeSingle(getTransferData(address(usdc), owner, .01 ether));
   }
@@ -81,8 +81,8 @@ contract ProjectTest is Test {
   /// @dev An ERC20 payment that is over the limit of the recepient, not token contract, should still revert.
   function testFailOnUSDCLimit() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(guard), address(usdc), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, 1 ether));
+    executeSingle(getAddContractGuardData(address(core), address(usdc), .01 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, 1 ether));
     executeSingle(getTransferData(address(usdc), owner, 1 ether));
   }
 
@@ -95,33 +95,33 @@ contract ProjectTest is Test {
   /// @dev A native gas token transfer over the limit should fail.
   function testFailOnNativeOverpayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, .1 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, .1 ether));
     executeSingle(getNativeTransferData(owner, 2 ether), 2 ether);
   }
 
   /// @dev A native gas token transfer under the whitelisted limit should pass.
   function testPassOnNativeDevPayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, .01 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getNativeTransferData(owner, .01 ether), .01 ether);
   }
 
   //Adding coverage tests for whitelist checks
   function testFailOnAddThenRemoveDaiContract() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(guard), address(dai), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, .01 ether));
+    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
-    executeSingle(getRemoveContractGuardData(address(guard), address(dai)));
+    executeSingle(getRemoveContractGuardData(address(core), address(dai)));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
   function testFailOnAddThenRemoveRecepient() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(guard), address(dai), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(guard), owner, .01 ether));
+    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
+    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
-    executeSingle(getRemoveRecepientGuardData(address(guard), owner));
+    executeSingle(getRemoveRecepientGuardData(address(core), owner));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
@@ -140,7 +140,7 @@ contract ProjectTest is Test {
 
      bytes memory guardData = abi.encodeWithSelector(
         setGuardFunctionSignature,
-        address(guard)
+        address(core)
     );
 
 
@@ -168,7 +168,7 @@ contract ProjectTest is Test {
 
      bytes memory guardData = abi.encodeWithSelector(
         setGuardFunctionSignature,
-        address(guard)
+        address(core)
     );
     GnosisTransaction memory txData = GnosisTransaction({to: to, value: 0, data: guardData});
     return txData;
