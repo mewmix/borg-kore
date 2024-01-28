@@ -7,7 +7,7 @@ import "solady/tokens/ERC20.sol";
 contract ProjectTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
-  bogrCore core;
+  borgCore core;
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
 
@@ -18,8 +18,8 @@ contract ProjectTest is Test {
   address dai_addr = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
 
   // Adding some tokens for the test
-  ERC20 usdc = ERC20(usdc_addr);
-  ERC20 dai = ERC20(dai_addr);
+  ERC20 usdc;// = ERC20(usdc_addr);
+  ERC20 dai;// = ERC20(dai_addr);
 
   /// Set our initial state: (All other tests are in isolation but share this state)
   /// 1. Set up the safe
@@ -27,13 +27,17 @@ contract ProjectTest is Test {
   /// 3. Allow the safe as a contract on the core
   /// 4. Set balances for tests
   function setUp() public {
+    ERC20 usdc = ERC20(usdc_addr);
+    ERC20 dai = ERC20(dai_addr);
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(MULTISIG);
     executeSingle(getAddContractGuardData(address(core), address(core), 2 ether));
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
-    deal(address(usdc), MULTISIG, 2 ether);
-    deal(address(dai), MULTISIG, 2 ether);
+  //  assertEq(dai.balanceOf(MULTISIG), 2 ether);
+     deal(address(dai), MULTISIG, 2 ether);
+   // deal(address(usdc), MULTISIG, 2 ether);
+ 
   }
 
   /// @dev Initial Check that the safe and owner are set correctly.

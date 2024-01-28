@@ -1,5 +1,5 @@
-safe-tools/=lib\safe-tools\src/
-safe-contracts/=lib\safe-tools\lib\safe-contracts/contracts/
-ds-test/=lib\forge-std\lib\ds-test\src/
-forge-std/=lib\forge-std\src/
-solady/=lib\safe-tools\lib\solady\src/
+safe-tools/=lib/safe-tools/src/
+safe-contracts/=lib/safe-tools/lib/safe-contracts/contracts
+ds-test/=lib/forge-std/lib/ds-test/src/
+forge-std/=lib/forge-std/src/
+solady/=lib/safe-tools/lib/solady/src/

@@ -4,8 +4,9 @@ pragma solidity ^0.8.19;
 import "safe-contracts/base/GuardManager.sol";
 import "safe-contracts/interfaces/IERC165.sol";
 import "solady/auth/Ownable.sol";
+import "./libs/auth.sol";
 
-contract borgCore is BaseGuard, Ownable {
+contract borgCore is BaseGuard, Auth, Ownable {
 
     ////////////////////////////////////////////////////////////////////////////////
     /// Error Messages
