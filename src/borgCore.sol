@@ -75,7 +75,6 @@ contract borgCore is BaseGuard, Auth, Ownable {
     ) 
         external view override
     {
-
         if (value > 0 && data.length == 0) {
             // Native Gas transfer
             if(!whitelistedRecepients[to].approved) {
