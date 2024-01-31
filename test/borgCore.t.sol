@@ -2,18 +2,22 @@
 pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "../src/borgCore.sol";
+import "../src/implants/ejectImplant.sol";
 import "solady/tokens/ERC20.sol";
 
 contract ProjectTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;
+  ejectImplant eject;
+
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
 
   // Set&pull our addresses for the tests. This is set for forked Arbitrum mainnet
   address MULTISIG = 0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
   address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //change this to the owner of the Safe (needs matching pk in the .env)
+  address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f;
   address usdc_addr = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
   address dai_addr = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
 
@@ -31,7 +35,17 @@ contract ProjectTest is Test {
     ERC20 dai = ERC20(dai_addr);
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(MULTISIG);
+    eject = new ejectImplant(owner, MULTISIG);
+    deal(owner, 2 ether);
+    deal(MULTISIG, 2 ether);
+
+    executeSingle(addOwner(address(jr)));
+    executeSingle(addOwner(address(dai_addr)));
+    executeSingle(getAddEjectModule(address(eject)));
+    vm.prank(owner);
+    eject.removeOwner(jr);
     executeSingle(getAddContractGuardData(address(core), address(core), 2 ether));
+
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
   //  assertEq(dai.balanceOf(MULTISIG), 2 ether);
@@ -211,6 +225,47 @@ contract ProjectTest is Test {
             amount
         );
         GnosisTransaction memory txData = GnosisTransaction({to: to, value: 0, data: guardData}); 
+        return txData;
+    }
+
+    function getAddEjectModule(address to) public view returns (GnosisTransaction memory) {
+        bytes4 addContractMethod = bytes4(
+            keccak256("enableModule(address)")
+        );
+
+        bytes memory guardData = abi.encodeWithSelector(
+            addContractMethod,
+            to
+        );
+        GnosisTransaction memory txData = GnosisTransaction({to: address(safe), value: 0, data: guardData}); 
+        return txData;
+    }
+
+
+    function addOwner(address toAdd) public view returns (GnosisTransaction memory) {
+        bytes4 addContractMethod = bytes4(
+            keccak256("addOwnerWithThreshold(address,uint256)")
+        );
+
+        bytes memory guardData = abi.encodeWithSelector(
+            addContractMethod,
+            toAdd,
+            1
+        );
+        GnosisTransaction memory txData = GnosisTransaction({to: address(safe), value: 0, data: guardData}); 
+        return txData;
+    }
+
+    function callEjectToRemoveImposter(address toRemove) public view returns (GnosisTransaction memory) {
+        bytes4 addContractMethod = bytes4(
+            keccak256("removeOwner(address)")
+        );
+
+        bytes memory guardData = abi.encodeWithSelector(
+            addContractMethod,
+            toRemove
+        );
+        GnosisTransaction memory txData = GnosisTransaction({to: address(eject), value: 0, data: guardData}); 
         return txData;
     }
 

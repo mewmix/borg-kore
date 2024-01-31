@@ -18,7 +18,8 @@ interface ISafe {
   function execTransactionFromModule(
     address to,
     uint256 value,
-    bytes memory data
+    bytes memory data,
+    Enum.Operation operation
   ) external returns (bool success);
 
   function execTransactionFromModuleReturnData(
@@ -33,4 +34,12 @@ interface ISafe {
     address start,
     uint256 pageSize
   ) external view returns (address[] memory array, address next);
+
+  function isOwner(address _owner) external view returns (bool);
+
+  function removeOwner(address prevOwner, address owner, uint256 _threshold) external;
+
+  function getOwners() external view returns (address[] memory);
+
+  function getThreshold() external view returns (uint256);
 }
