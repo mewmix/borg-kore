@@ -50,8 +50,8 @@ abstract contract GlobalACL {
         AUTH = _auth;
     }
 
-    modifier onlyConfigurator() {
-        AUTH.onlyRole(ADMIN_ROLE, msg.sender);
+    modifier onlyOwner() {
+        AUTH.onlyRole(OWNER_ROLE, msg.sender);
         _;
     }
 

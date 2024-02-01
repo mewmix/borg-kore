@@ -3,24 +3,20 @@ pragma solidity ^0.8.19;
 
 import "safe-contracts/base/GuardManager.sol";
 import "safe-contracts/interfaces/IERC165.sol";
-import "solady/auth/Ownable.sol";
 import "./libs/auth.sol";
 
-contract borgCore is BaseGuard, Auth, Ownable {
+contract borgCore is BaseGuard, GlobalACL {
 
-    ////////////////////////////////////////////////////////////////////////////////
+
     /// Error Messages
-    ////////////////////////////////////////////////////////////////////////////////
     error BORG_CORE_InvalidRecepient();
     error BORG_CORE_InvalidContract();
     error BORG_CORE_AmountOverLimit();
 
-    ////////////////////////////////////////////////////////////////////////////////
     /// Whitelist Structs
     /// @dev We can add more properties to the structs to add more functionality  
     /// Future ideas: method limitation of functions, scope, delegate caller
     /// mapping(bytes4 => bool) functionWhitelist;
-    ////////////////////////////////////////////////////////////////////////////////
     struct Recepient {
         bool approved;
         uint256 transactionLimit;
@@ -31,35 +27,26 @@ contract borgCore is BaseGuard, Auth, Ownable {
         uint256 transactionLimit;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
     /// Method IDs
     /// @dev To check for transfers. See note above -- we can add these
     /// to the whitelisted structs for more granular control.
-    ////////////////////////////////////////////////////////////////////////////////
     bytes4 private constant TRANSFER_METHOD_ID = 0xa9059cbb;
     bytes4 private constant TRANSFER_FROM_METHOD_ID = 0x23b872dd;
 
-    ////////////////////////////////////////////////////////////////////////////////
     /// Whitelist Mappings
-    ////////////////////////////////////////////////////////////////////////////////
     mapping(address => Recepient) public whitelistedRecepients;
     mapping(address => Contract) public whitelistedContracts;
 
-    ////////////////////////////////////////////////////////////////////////////////
     /// Constructor
-    /// @param _owner Address, ideally an oversight multisig or other safeguard.
-    ////////////////////////////////////////////////////////////////////////////////
-    constructor(address _owner) {
-        _setOwner(_owner);
+    /// @param _auth Address, ideally an oversight multisig or other safeguard.
+    constructor(Auth _auth) GlobalACL(_auth) {
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
     /// checkTransaction
     /// @dev This is pre-tx execution on the Safe that gets called on every execTx
     /// We here check for Native Gas transfers and ERC20 transfers based on the
     /// whitelist allowance. This implementation also blocks any other contract
     /// interaction if not on the whitelisted contract mapping. 
-    ////////////////////////////////////////////////////////////////////////////////
     function checkTransaction(
         address to, 
         uint256 value, 

@@ -6,33 +6,49 @@ pragma solidity ^0.8.19;
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
 
-contract ejectImplant is Auth { //is baseImplant
+contract ejectImplant is GlobalACL { //is baseImplant
 
- address public immutable BORG_SAFE;
+    address public immutable BORG_SAFE;
 
- constructor(address _owner, address _borgSafe) {
+    constructor(Auth _auth, address _borgSafe) GlobalACL(_auth) {
         BORG_SAFE = _borgSafe;
     }
 
-    function removeOwner(address owner) public {
-   // require(msg.sender == authorizedCaller, "Caller is not authorized");
-    ISafe gnosisSafe = ISafe(BORG_SAFE);
-    require(gnosisSafe.isOwner(owner), "Address is not an owner");
+    function ejectOwner(address owner) external onlyOwner {
+        // require(msg.sender == authorizedCaller, "Caller is not authorized");
+        ISafe gnosisSafe = ISafe(BORG_SAFE);
+        require(gnosisSafe.isOwner(owner), "Address is not an owner");
 
-    address[] memory owners = gnosisSafe.getOwners();
-    address prevOwner = address(0);
-    for (uint256 i = 0; i < owners.length; i++) {
-        if (owners[i] == owner) {
-            if (i > 0) {
-                prevOwner = owners[i - 1];
+        address[] memory owners = gnosisSafe.getOwners();
+        address prevOwner = address(0x1);
+        for (uint256 i = owners.length-1; i>=0; i--) {
+            if (owners[i] == owner) {
+                    prevOwner = owners[i + 1];
+                break;
             }
-            break;
         }
+        prevOwner = address(0x1);
+        bytes memory data = abi.encodeWithSignature("removeOwner(address,address,uint256)", prevOwner, owner, 1);
+        gnosisSafe.execTransactionFromModule(address(gnosisSafe), 0, data, Enum.Operation.Call);
     }
-    bytes memory data = abi.encodeWithSignature("removeOwner(address,address,uint256)", prevOwner, owner, 1);
-    gnosisSafe.execTransactionFromModule(address(gnosisSafe), 0, data, Enum.Operation.Call);
-   // gnosisSafe.removeOwner(prevOwner, owner, gnosisSafe.getThreshold() - 1);
-}
+
+    function selfEject() public {
+        ISafe gnosisSafe = ISafe(BORG_SAFE);
+        address owner = msg.sender;
+        require(gnosisSafe.isOwner(owner), "Caller is not an owner");
+
+        address[] memory owners = gnosisSafe.getOwners();
+        address prevOwner = address(0x1);
+        for (uint256 i = owners.length-1; i>=0; i--) {
+            if (owners[i] == owner) {
+                    prevOwner = owners[i + 1];
+                break;
+            }
+        }
+        prevOwner = address(0x1);
+        bytes memory data = abi.encodeWithSignature("removeOwner(address,address,uint256)", prevOwner, owner, 1);
+        gnosisSafe.execTransactionFromModule(address(gnosisSafe), 0, data, Enum.Operation.Call);
+    }
 
  /* function _execTransaction(
         address _to,

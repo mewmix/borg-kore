@@ -4,12 +4,14 @@ import "forge-std/Test.sol";
 import "../src/borgCore.sol";
 import "../src/implants/ejectImplant.sol";
 import "solady/tokens/ERC20.sol";
+import "../src/libs/auth.sol";
 
 contract ProjectTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;
   ejectImplant eject;
+  Auth auth;
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
@@ -20,6 +22,7 @@ contract ProjectTest is Test {
   address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f;
   address usdc_addr = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
   address dai_addr = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
+  address dao = address(0xDA0);
 
   // Adding some tokens for the test
   ERC20 usdc;// = ERC20(usdc_addr);
@@ -33,18 +36,21 @@ contract ProjectTest is Test {
   function setUp() public {
     ERC20 usdc = ERC20(usdc_addr);
     ERC20 dai = ERC20(dai_addr);
+    vm.prank(dao);
+    auth = new Auth();
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(MULTISIG);
-    eject = new ejectImplant(owner, MULTISIG);
+    core = new borgCore(auth);
+    eject = new ejectImplant(auth, MULTISIG);
+
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
 
     executeSingle(addOwner(address(jr)));
-    executeSingle(addOwner(address(dai_addr)));
     executeSingle(getAddEjectModule(address(eject)));
-    vm.prank(owner);
-    eject.removeOwner(jr);
-    executeSingle(getAddContractGuardData(address(core), address(core), 2 ether));
+
+    vm.prank(dao);
+    core.addContract(address(core), 2 ether);
+   // executeSingle(getAddContractGuardData(address(core), address(core), 2 ether));
 
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
@@ -59,10 +65,25 @@ contract ProjectTest is Test {
   assertEq(safe.isOwner(owner), true);
   }
 
+  function testSelfEject() public {
+    vm.prank(jr);
+    eject.selfEject();
+    assertEq(safe.isOwner(address(jr)), false);
+  }
+
+    function testFailejectNotApproved() public {
+    vm.prank(jr);
+    eject.ejectOwner(jr);
+    assertEq(safe.isOwner(address(jr)), true);
+  }
+
+
   /// @dev Ensure that the Guard contract is correctly whitelisted as a contract for the Safe.
   function testGuardSaftey() public {
     executeBatch(createTestBatch());
-    executeSingle(getAddContractGuardData(address(core), MULTISIG, 2 ether));
+    vm.prank(dao);
+    core.addContract(MULTISIG, 2 ether);
+    //executeSingle(getAddContractGuardData(address(core), MULTISIG, 2 ether));
   }
 
   /// @dev An ERC20 transfer with no whitelists set should fail.
@@ -74,8 +95,12 @@ contract ProjectTest is Test {
   /// @dev An ERC20 transfer that is correctly whitelisted should pass.
   function testPassOnDai() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
+    vm.prank(dao);
+    core.addContract(address(dai), .01 ether);
+    //executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
+    vm.prank(dao);
+    core.addRecepient(owner, .01 ether);
+    //executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
@@ -120,14 +145,18 @@ contract ProjectTest is Test {
   /// @dev A native gas token transfer under the whitelisted limit should pass.
   function testPassOnNativeDevPayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
+    vm.prank(dao);
+    core.addRecepient(owner, .01 ether);
+    //executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getNativeTransferData(owner, .01 ether), .01 ether);
   }
 
   //Adding coverage tests for whitelist checks
   function testFailOnAddThenRemoveDaiContract() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
+
+    core.addContract(address(dai), .01 ether);
+   // executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
     executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
     executeSingle(getRemoveContractGuardData(address(core), address(dai)));
