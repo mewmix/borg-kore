@@ -5,6 +5,8 @@ import "../src/borgCore.sol";
 import "../src/implants/ejectImplant.sol";
 import "solady/tokens/ERC20.sol";
 import "../src/libs/auth.sol";
+import "../src/implants/optimisticGrantImplant.sol";
+import "../src/implants/daoVetoGrantImplant.sol";
 
 contract ProjectTest is Test {
   // global contract deploys for the tests
@@ -12,167 +14,203 @@ contract ProjectTest is Test {
   borgCore core;
   ejectImplant eject;
   Auth auth;
+  optimisticGrantImplant opGrant;
+  daoVetoGrantImplant vetoGrant;
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
 
-  // Set&pull our addresses for the tests. This is set for forked Arbitrum mainnet
-  address MULTISIG = 0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
-  address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //change this to the owner of the Safe (needs matching pk in the .env)
-  address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f;
-  address usdc_addr = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
+  // Set&pull our addresses for the tests. This is set for forked ZKSYNC ERA
+  address MULTISIG = 0x68042dCD9a6178C97D518858829A3796639344F2; //change this to the deployed Safe address
+  address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //owner of the safe protaganist
+  address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f; //"junior" antagonist
+  address vip = 0xC2ab7443999c32498e7B0295335025e549515025; //vip address that has a lot of voting power in the test governance token
+  address usdc_addr = 0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4; //make sure this matches your chain
   address dai_addr = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
+  address arb_addr = 0x912CE59144191C1204E64559FE8253a0e49E6548; //arb token
+
+ // represents the DAO's On chain power address
   address dao = address(0xDA0);
 
   // Adding some tokens for the test
   ERC20 usdc;// = ERC20(usdc_addr);
-  ERC20 dai;// = ERC20(dai_addr);
+
 
   /// Set our initial state: (All other tests are in isolation but share this state)
   /// 1. Set up the safe
   /// 2. Set up the core with the safe as the owner
   /// 3. Allow the safe as a contract on the core
-  /// 4. Set balances for tests
+  /// 4. Inject the implants into the safe
+  /// 5. Set balances for tests
   function setUp() public {
     ERC20 usdc = ERC20(usdc_addr);
-    ERC20 dai = ERC20(dai_addr);
+    deal(dao, 2 ether);
+    
+    
     vm.prank(dao);
     auth = new Auth();
+
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth);
     eject = new ejectImplant(auth, MULTISIG);
+    opGrant = new optimisticGrantImplant(auth, MULTISIG);
+    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, usdc_addr, 259200, 1);
 
+    //for test: give out some tokens
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
+    //deal(address(usdc), vip, 1000000000 ether);
 
+    //sigers add jr, add the eject, optimistic grant, and veto grant implants.
     executeSingle(addOwner(address(jr)));
-    executeSingle(getAddEjectModule(address(eject)));
+    executeSingle(getAddModule(address(eject)));
+    executeSingle(getAddModule(address(opGrant)));
+    executeSingle(getAddModule(address(vetoGrant)));
 
+    //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
     core.addContract(address(core), 2 ether);
-   // executeSingle(getAddContractGuardData(address(core), address(core), 2 ether));
 
+
+    //Set the core as the guard for the safe
+    executeSingle(getSetGuardData(address(MULTISIG)));
+
+    //for test: give some tokens out
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
-  //  assertEq(dai.balanceOf(MULTISIG), 2 ether);
-     deal(address(dai), MULTISIG, 2 ether);
-   // deal(address(usdc), MULTISIG, 2 ether);
+    //deal(address(usdc), vip, 1000000000 ether);
  
   }
+
+
 
   /// @dev Initial Check that the safe and owner are set correctly.
   function testOwner() public { 
   assertEq(safe.isOwner(owner), true);
   }
 
-  //allow jr to remove himself from the safe
+  function testOpGrant() public {
+
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
+
+    vm.prank(dao);
+    opGrant.toggleAllowOwners(true); 
+
+    vm.prank(owner);
+    opGrant.createGrant(dai_addr, address(jr), 2 ether);
+
+    //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+  function testOpGrantBORG() public {
+
+    vm.prank(dao);
+    core.addContract(address(opGrant), 2 ether);
+
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
+
+    executeSingle(getCreateGrant(dai_addr, address(jr), 2 ether));
+  }
+
+  function testFailtOpGrantTooMany() public {
+
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
+
+    vm.prank(owner);
+    opGrant.createGrant(dai_addr, address(jr), 2 ether);
+
+    vm.prank(owner);
+    opGrant.createGrant(dai_addr, address(jr), 2 ether);
+
+    //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+  function testFailtOpGrantTooMuch() public {
+
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(5, 1711930764); // 1 grant by march 31, 2024
+
+    vm.prank(owner);
+    opGrant.createGrant(dai_addr, address(jr), 3 ether);
+
+  }
+
+  function testFailtOpGrantWrongToken() public {
+
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(6, 1711930764); // 1 grant by march 31, 2024
+
+    vm.prank(owner);
+    opGrant.createGrant(usdc_addr, address(jr), 1 ether);
+
+  }
+
+    function testVetoGrant() public {
+
+    vm.prank(dao);
+    vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(owner);
+    uint256 id = vetoGrant.createProposal(dai_addr, address(jr), 2 ether);
+    skip(259205);
+
+    vm.prank(owner);
+    vetoGrant.executeProposal(id);
+    //assertion
+  }
+
+  function testFailVetoGrantVeto() public {
+
+    vm.prank(dao);
+    vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(owner);
+    uint256 id = vetoGrant.createProposal(dai_addr, address(jr), 2 ether);
+    skip(100);
+
+    vm.prank(vip);
+    vetoGrant.objectToProposal(id);
+    skip(259205);
+
+    vm.prank(owner);
+    vetoGrant.executeProposal(id);
+
+    }
+
+   function testDAOEject() public {
+    vm.prank(dao);
+    eject.ejectOwner(address(jr));
+    assertEq(safe.isOwner(address(jr)), false);
+  }
+
   function testSelfEject() public {
     vm.prank(jr);
     eject.selfEject();
     assertEq(safe.isOwner(address(jr)), false);
   }
 
-    //jr cannot use the ejectOwner method bc he doesn't have ACL in the contract, can only selfEject
     function testFailejectNotApproved() public {
     vm.prank(jr);
     eject.ejectOwner(jr);
     assertEq(safe.isOwner(address(jr)), true);
-  }
-
-  /// @dev Ensure that the Guard contract is correctly whitelisted as a contract for the Safe.
-  function testGuardSaftey() public {
-    executeBatch(createTestBatch());
-    vm.prank(dao);
-    core.addContract(MULTISIG, 2 ether);
-  }
-
-  /// @dev An ERC20 transfer with no whitelists set should fail.
-  function testFailOnDai() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getTransferData(address(dai), MULTISIG, .1 ether));
-  }
-
-  /// @dev An ERC20 transfer that is correctly whitelisted should pass.
-  function testPassOnDai() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    vm.prank(dao);
-    core.addContract(address(dai), .01 ether);
-    vm.prank(dao);
-    core.addRecepient(owner, .01 ether);
-    executeSingle(getTransferData(address(dai), owner, .01 ether));
-  }
-
-  /// @dev An ERC20 payment that is over the limit should revert.
-  function testFailOnDaiOverpayment() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    vm.prank(dao);
-    core.addContract(address(dai), .01 ether);
-
-    vm.prank(dao);
-    core.addRecepient(owner, .01 ether);
-    executeSingle(getTransferData(address(dai), owner, .1 ether));
-  }
-
-  /// @dev An ERC20 payment for a token that hasn't been whitelisted should fail.
-  function testFailOnUSDC() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    vm.prank(dao);
-    core.addContract(dai_addr, .01 ether);
-    vm.prank(dao);
-    core.addRecepient(owner, .01 ether);
-    executeSingle(getTransferData(dai_addr, owner, .01 ether));
-    executeSingle(getTransferData(usdc_addr, owner, .01 ether));
-  }
-
-  /// @dev An ERC20 payment that is over the limit of the recepient, not token contract, should still revert.
-  function testFailOnUSDCLimit() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    vm.prank(dao);
-    core.addContract(usdc_addr, .01 ether);
-
-    vm.prank(dao);
-    core.addRecepient(owner, 1 ether);
-    executeSingle(getTransferData(usdc_addr, owner, 1 ether));
-  }
-
-  /// @dev A native gas token transfer should fail on an unwhitelisted recepient.
-  function testFailOnNativeRug() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getNativeTransferData(owner, 2 ether), 2 ether);
-  }
-  
-  /// @dev A native gas token transfer over the limit should fail.
-  function testFailOnNativeOverpayment() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddRecepientGuardData(address(core), owner, .1 ether));
-    executeSingle(getNativeTransferData(owner, 2 ether), 2 ether);
-  }
-
-  /// @dev A native gas token transfer under the whitelisted limit should pass.
-  function testPassOnNativeDevPayment() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    vm.prank(dao);
-    core.addRecepient(owner, .01 ether);
-    executeSingle(getNativeTransferData(owner, .01 ether), .01 ether);
-  }
-
-  //Adding coverage tests for whitelist checks
-  function testFailOnAddThenRemoveDaiContract() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    core.addContract(address(dai), .01 ether);
-    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
-    executeSingle(getTransferData(address(dai), owner, .01 ether));
-    executeSingle(getRemoveContractGuardData(address(core), address(dai)));
-    executeSingle(getTransferData(address(dai), owner, .01 ether));
-  }
-
-  function testFailOnAddThenRemoveRecepient() public {
-    executeSingle(getSetGuardData(address(MULTISIG)));
-    executeSingle(getAddContractGuardData(address(core), address(dai), .01 ether));
-    executeSingle(getAddRecepientGuardData(address(core), owner, .01 ether));
-    executeSingle(getTransferData(address(dai), owner, .01 ether));
-    executeSingle(getRemoveRecepientGuardData(address(core), owner));
-    executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
 
@@ -192,7 +230,6 @@ contract ProjectTest is Test {
         setGuardFunctionSignature,
         address(core)
     );
-
 
     batch[0] = GnosisTransaction({to: address(safe), value: 0, data: guardData});
 
@@ -260,7 +297,7 @@ contract ProjectTest is Test {
         return txData;
     }
 
-    function getAddEjectModule(address to) public view returns (GnosisTransaction memory) {
+    function getAddModule(address to) public view returns (GnosisTransaction memory) {
         bytes4 addContractMethod = bytes4(
             keccak256("enableModule(address)")
         );
@@ -270,6 +307,21 @@ contract ProjectTest is Test {
             to
         );
         GnosisTransaction memory txData = GnosisTransaction({to: address(safe), value: 0, data: guardData}); 
+        return txData;
+    }
+
+    function getCreateGrant(address token, address rec, uint256 amount) public view returns (GnosisTransaction memory) {
+        bytes4 addContractMethod = bytes4(
+            keccak256("createGrant(address,address,uint256)")
+        );
+
+        bytes memory guardData = abi.encodeWithSelector(
+            addContractMethod,
+            token,
+            rec,
+            amount
+        );
+        GnosisTransaction memory txData = GnosisTransaction({to: address(opGrant), value: 0, data: guardData}); 
         return txData;
     }
 

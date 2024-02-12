@@ -5,7 +5,7 @@ import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
 import "forge-std/interfaces/IERC20.sol";
 
-contract daoVetoGrantImplant is GlobalACL { //is baseImplant
+contract daoVoteGrantImplant is GlobalACL { //is baseImplant
 
     address public immutable BORG_SAFE;
     address public immutable governanceToken;
