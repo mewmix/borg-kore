@@ -47,9 +47,9 @@ contract ProjectTest is Test {
     deal(dao, 2 ether);
     
     
-    vm.prank(dao);
+    vm.startPrank(dao);
     auth = new Auth();
-
+    vm.stopPrank();
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth);
     eject = new ejectImplant(auth, MULTISIG);
@@ -68,9 +68,9 @@ contract ProjectTest is Test {
     executeSingle(getAddModule(address(vetoGrant)));
 
     //dao deploys the core, with the dao as the owner.
-    vm.prank(dao);
+    vm.startPrank(dao);
     core.addContract(address(core), 2 ether);
-
+    vm.stopPrank();
 
     //Set the core as the guard for the safe
     executeSingle(getSetGuardData(address(MULTISIG)));
@@ -91,125 +91,126 @@ contract ProjectTest is Test {
 
   function testOpGrant() public {
 
-    vm.prank(dao);
+    vm.startPrank(dao);
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(dao);
     opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
-
-    vm.prank(dao);
     opGrant.toggleAllowOwners(true); 
-
-    vm.prank(owner);
+    vm.stopPrank();
+    vm.startPrank(owner);
     opGrant.createGrant(dai_addr, address(jr), 2 ether);
-
+    vm.stopPrank();
     //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
   }
 
   function testOpGrantBORG() public {
 
-    vm.prank(dao);
+   vm.startPrank(dao);
     core.addContract(address(opGrant), 2 ether);
 
-    vm.prank(dao);
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
-    vm.prank(dao);
     opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
+    vm.stopPrank();
 
     executeSingle(getCreateGrant(dai_addr, address(jr), 2 ether));
   }
 
   function testFailtOpGrantTooMany() public {
 
-    vm.prank(dao);
+    vm.startPrank(dao);
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
-    vm.prank(dao);
+
     opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
-
-    vm.prank(owner);
+    vm.stopPrank();
+    vm.startPrank(owner);
     opGrant.createGrant(dai_addr, address(jr), 2 ether);
 
-    vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 2 ether);
 
+    opGrant.createGrant(dai_addr, address(jr), 2 ether);
+    vm.stopPrank();
     //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
   }
 
   function testFailtOpGrantTooMuch() public {
 
-    vm.prank(dao);
+    vm.startPrank(dao);
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
-    vm.prank(dao);
+
     opGrant.setGrantLimits(5, 1711930764); // 1 grant by march 31, 2024
-
-    vm.prank(owner);
+    vm.stopPrank();
+    vm.startPrank(owner);
     opGrant.createGrant(dai_addr, address(jr), 3 ether);
-
+    vm.stopPrank();
   }
 
   function testFailtOpGrantWrongToken() public {
 
-    vm.prank(dao);
+     vm.startPrank(dao);
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
-    vm.prank(dao);
+    
     opGrant.setGrantLimits(6, 1711930764); // 1 grant by march 31, 2024
-
-    vm.prank(owner);
+    vm.stopPrank();
+    vm.startPrank(owner);
     opGrant.createGrant(usdc_addr, address(jr), 1 ether);
-
+    vm.stopPrank();
   }
 
     function testVetoGrant() public {
 
-    vm.prank(dao);
+    vm.startPrank(dao);
     vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(owner);
+    vm.stopPrank();
+    vm.startPrank(owner);
     uint256 id = vetoGrant.createProposal(dai_addr, address(jr), 2 ether);
     skip(259205);
 
-    vm.prank(owner);
     vetoGrant.executeProposal(id);
     //assertion
+    vm.stopPrank();
   }
 
   function testFailVetoGrantVeto() public {
 
-    vm.prank(dao);
+    vm.startPrank(dao);
     vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(owner);
+vm.stopPrank();
+    vm.startPrank(owner);
     uint256 id = vetoGrant.createProposal(dai_addr, address(jr), 2 ether);
     skip(100);
+    vm.stopPrank();
 
-    vm.prank(vip);
+    vm.startPrank(vip);
     vetoGrant.objectToProposal(id);
     skip(259205);
+    vm.stopPrank();
 
-    vm.prank(owner);
+    vm.startPrank(owner);
     vetoGrant.executeProposal(id);
+    vm.stopPrank();
 
     }
 
    function testDAOEject() public {
-    vm.prank(dao);
+    vm.startPrank(dao);
     eject.ejectOwner(address(jr));
+    vm.stopPrank();
     assertEq(safe.isOwner(address(jr)), false);
   }
 
   function testSelfEject() public {
-    vm.prank(jr);
+    vm.startPrank(jr);
     eject.selfEject();
+    vm.stopPrank();
     assertEq(safe.isOwner(address(jr)), false);
   }
 
     function testFailejectNotApproved() public {
-    vm.prank(jr);
+    vm.startPrank(jr);
     eject.ejectOwner(jr);
+    vm.stopPrank();
     assertEq(safe.isOwner(address(jr)), true);
   }
 
@@ -484,7 +485,7 @@ contract ProjectTest is Test {
             refundReceiver,
             nonce
         );
-        vm.prank(owner);
+        vm.startPrank(owner);
         safe.execTransaction(
             to,
             value,
@@ -497,6 +498,7 @@ contract ProjectTest is Test {
             refundReceiver,
             signature
         );
+        vm.stopPrank();
     }
 
     function executeData(
@@ -524,7 +526,7 @@ contract ProjectTest is Test {
             refundReceiver,
             nonce
         );
-        vm.prank(owner);
+        vm.startPrank(owner);
         safe.execTransaction(
             to,
             value,
@@ -537,6 +539,7 @@ contract ProjectTest is Test {
             refundReceiver,
             signature
         );
+        vm.stopPrank();
     }
 }
 

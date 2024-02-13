@@ -34,8 +34,9 @@ contract ProjectTest is Test {
     deal(dao, 2 ether);
     
     
-    vm.prank(dao);
+    vm.startPrank(dao);
     auth = new Auth();
+    vm.stopPrank();
     core = new borgCore(auth);
     eject = new ejectImplant(auth, MULTISIG);
     opGrant = new optimisticGrantImplant(auth, MULTISIG);
