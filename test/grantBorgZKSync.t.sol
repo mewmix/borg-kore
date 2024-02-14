@@ -63,8 +63,8 @@ contract ProjectTest is Test {
     //deal(address(usdc), vip, 1000000000 ether);
 
     //sigers add jr, add the eject, optimistic grant, and veto grant implants.
-   /* executeSingle(addOwner(address(jr)));
-    executeSingle(getAddModule(address(eject)));
+    executeSingle(addOwner(address(jr)));
+    /*executeSingle(getAddModule(address(eject)));
     executeSingle(getAddModule(address(opGrant)));
     executeSingle(getAddModule(address(vetoGrant)));
 
@@ -196,9 +196,9 @@ vm.stopPrank();
 
    function testDAOEject() public {
     vm.startPrank(dao);
-    eject.ejectOwner(address(jr));
+    eject.ejectOwner(address(owner));
     vm.stopPrank();
-    assertEq(safe.isOwner(address(jr)), false);
+    assertEq(safe.isOwner(address(owner)), false);
   }
 
   function testSelfEject() public {
