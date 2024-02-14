@@ -50,6 +50,7 @@ contract ProjectTest is Test {
     vm.startPrank(dao);
     auth = new Auth();
     vm.stopPrank();
+    
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth);
     eject = new ejectImplant(auth, MULTISIG);
@@ -420,8 +421,10 @@ vm.stopPrank();
         );
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startPrank(owner);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(deployerPrivateKey, keccak256(txHashData));
         bytes memory signature = abi.encodePacked(r, s, v);
+        vm.stopPrank();
         return signature;
     }
 
