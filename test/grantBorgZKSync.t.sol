@@ -63,7 +63,7 @@ contract ProjectTest is Test {
     //deal(address(usdc), vip, 1000000000 ether);
 
     //sigers add jr, add the eject, optimistic grant, and veto grant implants.
-    executeSingle(addOwner(address(jr)));
+   /* executeSingle(addOwner(address(jr)));
     executeSingle(getAddModule(address(eject)));
     executeSingle(getAddModule(address(opGrant)));
     executeSingle(getAddModule(address(vetoGrant)));
@@ -74,7 +74,7 @@ contract ProjectTest is Test {
     vm.stopPrank();
 
     //Set the core as the guard for the safe
-    executeSingle(getSetGuardData(address(MULTISIG)));
+    executeSingle(getSetGuardData(address(MULTISIG)));*/
 
     //for test: give some tokens out
     deal(owner, 2 ether);
