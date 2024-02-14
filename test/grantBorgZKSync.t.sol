@@ -420,11 +420,12 @@ vm.stopPrank();
             nonce
         );
 
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startPrank(owner);
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+   
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(deployerPrivateKey, keccak256(txHashData));
+        vms.stopPrank();
         bytes memory signature = abi.encodePacked(r, s, v);
-        vm.stopPrank();
         return signature;
     }
 
