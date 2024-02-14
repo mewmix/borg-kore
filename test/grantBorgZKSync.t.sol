@@ -420,11 +420,11 @@ vm.stopPrank();
             nonce
         );
 
-        vm.startPrank(owner);
+   
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
    
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(deployerPrivateKey, keccak256(txHashData));
-        vms.stopPrank();
+    
         bytes memory signature = abi.encodePacked(r, s, v);
         return signature;
     }
@@ -477,6 +477,7 @@ vm.stopPrank();
         address gasToken = address(0);
         address refundReceiver = address(0);
         uint256 nonce = safe.nonce();
+        vm.startPrank(owner);
         bytes memory signature = getSignature(
             to,
             value,
@@ -489,7 +490,7 @@ vm.stopPrank();
             refundReceiver,
             nonce
         );
-        vm.startPrank(owner);
+     
         safe.execTransaction(
             to,
             value,
@@ -518,6 +519,7 @@ vm.stopPrank();
         address gasToken = address(0);
         address refundReceiver = address(0);
         uint256 nonce = safe.nonce();
+                vm.startPrank(owner);
         bytes memory signature = getSignature(
             to,
             value,
@@ -530,7 +532,7 @@ vm.stopPrank();
             refundReceiver,
             nonce
         );
-        vm.startPrank(owner);
+
         safe.execTransaction(
             to,
             value,
