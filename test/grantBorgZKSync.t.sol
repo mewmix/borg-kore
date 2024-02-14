@@ -43,7 +43,7 @@ contract ProjectTest is Test {
   /// 4. Inject the implants into the safe
   /// 5. Set balances for tests
   function setUp() public {
-    ERC20 usdc = ERC20(usdc_addr);
+    //ERC20 usdc = ERC20(usdc_addr);
     deal(dao, 2 ether);
     
     
