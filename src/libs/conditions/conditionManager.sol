@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.19;
 
 import "./baseCondition.sol";
 import "../auth.sol";
@@ -22,7 +22,10 @@ contract ConditionManager is GlobalACL {
         conditions.push(Condition(_condition, _op));
     }
 
-    function checkConditions() private returns (bool result) {
+    function checkConditions() public returns (bool result) {
+        if(conditions.length == 0) 
+            return true;
+        
         for (uint256 i = 0; i < conditions.length; i++) {
             if (conditions[i].op == Logic.AND) {
                 result = conditions[i].condition.checkCondition();
