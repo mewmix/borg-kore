@@ -9,6 +9,7 @@ import "../src/implants/daoVetoGrantImplant.sol";
 import "./libraries/safe.t.sol";
 import "../src/libs/conditions/signatureCondition.sol";
 
+
 contract ProjectTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
@@ -17,6 +18,7 @@ contract ProjectTest is Test {
   Auth auth;
   optimisticGrantImplant opGrant;
   daoVetoGrantImplant vetoGrant;
+  SignatureCondition sigCondition;
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
@@ -59,7 +61,13 @@ contract ProjectTest is Test {
     eject = new ejectImplant(auth, MULTISIG);
     opGrant = new optimisticGrantImplant(auth, MULTISIG);
     vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, arb_addr, 259200, 1);
-    sigCondition = new SignatureCondition([address(owner)], 1, 0, auth);
+    //create SignatureCondition.Logic for and
+     SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
+    address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element
+    signers[0] = address(owner);
+    sigCondition = new SignatureCondition(signers, 1, logic);
+    vm.prank(dao);
+    eject.addCondition(ConditionManager.Logic.AND, address(sigCondition));
 
     //for test: give out some tokens
     deal(owner, 2 ether);
