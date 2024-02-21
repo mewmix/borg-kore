@@ -5,12 +5,12 @@ import "./BaseCondition.sol";
 
 contract SignatureCondition is BaseCondition {
     address[] private signers;
-    uint256 private threshold;
+    uint256 private immutable threshold;
     mapping(address => bool) public hasSigned;
     uint256 public signatureCount;
     
     enum Logic { AND, OR }
-    Logic public logic;
+    Logic public immutable logic;
 
     constructor(address[] memory _signers, uint256 _threshold, Logic _logic) {
         require(_threshold <= _signers.length, "Threshold cannot exceed number of signers");
@@ -29,14 +29,20 @@ contract SignatureCondition is BaseCondition {
         emit Signed(msg.sender);
     }
 
-    function checkCondition() public override returns (bool) {
+    function revokeSignature() public {
+        require(isSigner(msg.sender), "Caller is not a signer");
+        require(hasSigned[msg.sender], "Caller has not signed");
+
+        hasSigned[msg.sender] = false;
+        signatureCount--;
+    }
+
+    function checkCondition() public view override returns (bool) {
         if (logic == Logic.AND) {
             return signatureCount == signers.length;
         } else if (logic == Logic.OR) {
             return signatureCount >= threshold;
-        }
-        // Default case, should not reach here
-        return false;
+        } else return false; // Default case, should not reach here
     }
 
     function isSigner(address _address) public view returns (bool) {
