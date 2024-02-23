@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "./BaseCondition.sol";
 
 contract SignatureCondition is BaseCondition {
+
     enum Logic {
         AND,
         OR
@@ -59,6 +60,7 @@ contract SignatureCondition is BaseCondition {
         if (!isSigner[msg.sender]) revert SignatureCondition_CallerNotSigner();
         if (!hasSigned[msg.sender])
             revert SignatureCondition_CallerHasNotSigned();
+
 
         hasSigned[msg.sender] = false;
         signatureCount--;
