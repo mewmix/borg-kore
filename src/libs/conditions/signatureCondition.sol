@@ -34,13 +34,16 @@ contract SignatureCondition is BaseCondition {
             revert SignatureCondition_ThresholdExceedsSigners();
         threshold = _threshold;
         logic = _logic;
+
+        uint8 signerCount = 0;
         for (uint256 i = 0; i < _signers.length; ) {
-            isSigner[_signers[i]] == true;
+            isSigner[_signers[i]] = true;
             unchecked {
                 i++; // will not overflow without hitting gas limit
-                numSigners++;
+                signerCount++;
             }
         }
+        numSigners = signerCount;
     }
 
     function sign() public {
