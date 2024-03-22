@@ -11,6 +11,7 @@ contract ejectImplant is
 {
     ISafe internal immutable gnosisSafe;
     address public immutable BORG_SAFE;
+    address public immutable FAIL_SAFE;
 
     error ejectImplant_ConditionsNotMet();
     error ejectImplant_NotOwner();
@@ -78,12 +79,5 @@ contract ejectImplant is
             Enum.Operation.Call
         );
     }
- /* function _execTransaction(
-        address _to,
-        bytes memory _calldata
-    ) internal returns (bytes memory _ret) {
-        ISafe(BORG_SAFE).execTransactionFromModule(_to, 0, _calldata, 0);
-        bool success;
-
-    }*/
 }
+
