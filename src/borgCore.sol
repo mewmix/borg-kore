@@ -269,7 +269,7 @@ contract borgCore is BaseGuard, GlobalACL {
                         return false;
                     }
                 }
-                else if (param.paramType == ParamType.INT256) {
+                else if (param.paramType == ParamType.INT) {
                     // Extracting an int value
                     int intValue = abi.decode(_methodCallData[param.byteOffset:param.byteOffset+param.byteLength], (int));
                     if (intValue < int(param.minValue) || intValue > int(param.maxValue)) {
