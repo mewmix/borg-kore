@@ -18,9 +18,10 @@ contract ejectImplant is
 
     /// @param _auth initialize authorization parameters for this contract, including applicable conditions
     /// @param _borgSafe address of the applicable BORG's Gnosis Safe which is adding this ejectImplant
-    constructor(Auth _auth, address _borgSafe) ConditionManager(_auth) {
+    constructor(Auth _auth, address _borgSafe, address _failSafe) ConditionManager(_auth) {
         BORG_SAFE = _borgSafe;
         gnosisSafe = ISafe(_borgSafe);
+        FAIL_SAFE = _failSafe;
     }
 
     /// @notice for an 'owner' to eject an 'owner' from the 'gnosisSafe'
