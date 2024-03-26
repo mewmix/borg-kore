@@ -111,10 +111,12 @@ contract ProjectTest is Test {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
     //core.addContract(address(dai), .01 ether);
+    borgCore.ParamType _paramtype = borgCore.ParamType.UINT;
      core.addRangeParameterConstraint(
       address(dai),
       "transfer(address,uint256)",
       0,
+      _paramtype,
       0,
       1 ether,
       36,
