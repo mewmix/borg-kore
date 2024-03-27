@@ -301,6 +301,16 @@ contract borgCore is BaseGuard, GlobalACL {
 
     }
 
+    function addMethodCooldown(
+        address _contract,
+        string memory _methodSignature,
+        uint256 _cooldownPeriod
+    ) public onlyOwner {
+        bytes4 methodSelector = bytes4(keccak256(bytes(_methodSignature)));
+        policy[_contract].methods[methodSelector].cooldownPeriod = _cooldownPeriod;
+        policy[_contract].methods[methodSelector].lastExecutionTimestamp = block.timestamp;
+    }
+
     function removeParameterConstraint(
         address _contract,
         string memory _methodSignature,
