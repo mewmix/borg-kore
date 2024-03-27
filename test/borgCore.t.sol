@@ -53,7 +53,7 @@ contract ProjectTest is Test {
     executeSingle(getAddEjectModule(address(eject)));
 
     vm.prank(dao);
-    core.addContract(address(core), 2 ether);
+    core.addContract(address(core));
     /*   function addRangeParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -97,7 +97,7 @@ contract ProjectTest is Test {
   function testGuardSaftey() public {
     executeBatch(createTestBatch());
     vm.prank(dao);
-    core.addContract(MULTISIG, 2 ether);
+    core.addContract(MULTISIG);
   }
 
   /// @dev An ERC20 transfer with no whitelists set should fail.
@@ -112,15 +112,14 @@ contract ProjectTest is Test {
     vm.prank(dao);
     //core.addContract(address(dai), .01 ether);
     borgCore.ParamType _paramtype = borgCore.ParamType.UINT;
-     core.addRangeParameterConstraint(
-      address(dai),
-      "transfer(address,uint256)",
-      0,
-      _paramtype,
-      0,
-      1 ether,
-      36,
-      32
+    core.addUnsignedRangeParameterConstraint(
+        address(dai),
+        "transfer(address,uint256)",
+        _paramtype,
+        0,
+        1 ether,
+        36,
+        32
     );
     vm.prank(dao);
     core.addRecipient(owner, .01 ether);
@@ -131,7 +130,7 @@ contract ProjectTest is Test {
   function testFailOnDaiOverpayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addContract(address(dai), .01 ether);
+    core.addContract(address(dai));
 
     vm.prank(dao);
     core.addRecipient(owner, .01 ether);
@@ -142,7 +141,7 @@ contract ProjectTest is Test {
   function testFailOnUSDC() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addContract(dai_addr, .01 ether);
+    core.addContract(dai_addr);
     vm.prank(dao);
     core.addRecipient(owner, .01 ether);
     executeSingle(getTransferData(dai_addr, owner, .01 ether));
@@ -153,7 +152,7 @@ contract ProjectTest is Test {
   function testFailOnUSDCLimit() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addContract(usdc_addr, .01 ether);
+    core.addContract(usdc_addr);
 
     vm.prank(dao);
     core.addRecipient(owner, 1 ether);
@@ -184,7 +183,7 @@ contract ProjectTest is Test {
   //Adding coverage tests for whitelist checks
   function testFailOnAddThenRemoveDaiContract() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    core.addContract(address(dai), .01 ether);
+    core.addContract(address(dai));
     executeSingle(getaddRecipientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
     executeSingle(getRemoveContractGuardData(address(core), address(dai)));

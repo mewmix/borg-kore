@@ -99,7 +99,7 @@ contract ProjectTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addContract(address(core), 2 ether);
+    core.addContract(address(core));
 
 
     //Set the core as the guard for the safe
@@ -263,7 +263,7 @@ function testSign_AllSigners_AndLogic() public {
   function testOpGrantBORG() public {
 
     vm.prank(dao);
-    core.addContract(address(opGrant), 2 ether);
+    core.addContract(address(opGrant));
 
     vm.prank(dao);
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
