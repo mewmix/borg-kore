@@ -131,7 +131,16 @@ contract ProjectTest is Test {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
     core.addContract(address(dai));
-
+    vm.prank(dao);
+    core.addUnsignedRangeParameterConstraint(
+        address(dai),
+        "transfer(address,uint256)",
+        _paramtype,
+        0,
+        1 ether,
+        36,
+        32
+    );
     vm.prank(dao);
     core.addRecipient(owner, .01 ether);
     executeSingle(getTransferData(address(dai), owner, .1 ether));
