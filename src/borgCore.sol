@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "safe-contracts/base/GuardManager.sol";
 import "./libs/auth.sol";
+import "forge-std/console.sol";
 
 contract borgCore is BaseGuard, GlobalACL {
 
@@ -11,6 +12,8 @@ contract borgCore is BaseGuard, GlobalACL {
     error BORG_CORE_InvalidContract();
     error BORG_CORE_AmountOverLimit();
     error BORG_CORE_ArraysDoNotMatch();
+    error BORG_CORE_ExactMatchParamterFailed();
+    error BORG_CORE_MethodNotAuthorized();
     
     /// Events
     event PolicyUpdated(address indexed contractAddress, string methodName, uint256 minValue, uint256 maxValue, bytes exactMatch, uint256 byteOffset, uint256 byteLength);
@@ -109,7 +112,7 @@ contract borgCore is BaseGuard, GlobalACL {
                 if(isMethodCallAllowed(to, data))
                     return;
                 else 
-                    revert BORG_CORE_InvalidContract();
+                    revert BORG_CORE_MethodNotAuthorized();
             bytes4 methodId = bytes4(data[:4]);
             // Check for an ERC20 transfer
             if (methodId == TRANSFER_METHOD_ID || methodId == TRANSFER_FROM_METHOD_ID) {
@@ -200,7 +203,6 @@ contract borgCore is BaseGuard, GlobalACL {
             uint256 byteOffset = _byteOffsets[i];
             uint256 byteLength = _byteLengths[i];
             ParamType paramType = _paramTypes[i];
-
 
             //if the string is empty
             if (bytes(methodName).length == 0){
@@ -297,7 +299,8 @@ contract borgCore is BaseGuard, GlobalACL {
         policy[_contract].fullAccess = false;
          //set method allowed to true
         policy[_contract].methods[methodSelector].allowed = true;
-        //update the currentConstraints counter
+        //update the offsets array
+        policy[_contract].methods[methodSelector].paramOffsets.push(_byteOffset);
 
     }
 
@@ -319,6 +322,15 @@ contract borgCore is BaseGuard, GlobalACL {
         bytes4 methodSelector = bytes4(keccak256(bytes(_methodSignature)));
         //remove the parameter constraint, not set it to false
         delete policy[_contract].methods[methodSelector].parameterConstraints[_byteOffset];
+        //update the offsets array
+        uint256[] storage offsets = policy[_contract].methods[methodSelector].paramOffsets;
+        for (uint256 i = 0; i < offsets.length; i++) {
+            if (offsets[i] == _byteOffset) {
+                offsets[i] = offsets[offsets.length - 1];
+                offsets.pop();
+                break;
+            }
+        }
         //update the currentConstraints counter
     }
 
@@ -359,14 +371,10 @@ contract borgCore is BaseGuard, GlobalACL {
                         if(param.exactMatch[j] == keccak256(matchValue)){
                             matchFound = true;
                         }
-
                     }
                     if(!matchFound) 
-                        return false;
-                    
+                        revert BORG_CORE_ExactMatchParamterFailed();
                 }
-
-              
             }
             unchecked {
              ++i; // cannot overflow without hitting gaslimit

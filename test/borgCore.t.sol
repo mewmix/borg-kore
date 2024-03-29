@@ -121,6 +121,19 @@ contract ProjectTest is Test {
         36,
         32
     );
+
+    bytes32[] memory matches = new bytes32[](1);
+    //get a hash of the owner address and add it to bytes 32 array
+
+    matches[0] = keccak256(abi.encodePacked(address(owner)));
+    vm.prank(dao);
+    core.addExactMatchParameterConstraint(
+        address(dai),
+        "transfer(address,uint256)",
+        borgCore.ParamType.ADDRESS,
+        matches,
+        16,
+        20);
     vm.prank(dao);
     core.addRecipient(owner, .01 ether);
     executeSingle(getTransferData(address(dai), owner, .01 ether));
@@ -132,12 +145,13 @@ contract ProjectTest is Test {
     vm.prank(dao);
     core.addContract(address(dai));
     vm.prank(dao);
+     borgCore.ParamType _paramtype = borgCore.ParamType.UINT;
     core.addUnsignedRangeParameterConstraint(
         address(dai),
         "transfer(address,uint256)",
         _paramtype,
         0,
-        1 ether,
+        .1 ether,
         36,
         32
     );
