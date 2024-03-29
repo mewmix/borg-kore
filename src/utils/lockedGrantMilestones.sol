@@ -4,9 +4,11 @@ pragma solidity ^0.8.19;
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
 import "../interfaces/ICondition.sol";
+import "../interfaces/IConditionManager.sol";
 
 contract GrantMilestones is GlobalACL {
     address public immutable BORG_SAFE;
+    address public immutable REVOKE_CONDITIONS;
 
     struct Milestone {
         address token;
@@ -17,23 +19,18 @@ contract GrantMilestones is GlobalACL {
 
     Milestone[] public milestones;
 
-    constructor(Auth _auth, address _borgSafe) GlobalACL(_auth) {
+    //Error Messages
+    error GrantMilestones_RevokeConditionsNotMet();
+
+    constructor(Auth _auth, address _borgSafe, address _revokeConditions, Milestone[] memory _milestones) GlobalACL(_auth) {
         BORG_SAFE = _borgSafe;
+        REVOKE_CONDITIONS = _revokeConditions;
+        milestones = _milestones;
     }
 
     modifier onlyBorgSafe() {
         require(BORG_SAFE == msg.sender, "Caller is not the BORG");
         _;
-    }
-
-    function addMilestone(address _token, uint256 _tokensToUnlock, address[] memory _conditionContracts) external onlyOwner {
-        milestones.push(Milestone(_token, _tokensToUnlock, _conditionContracts, false));
-    }
-
-    function removeMilestone(uint256 _milestoneIndex) external onlyOwner {
-        require(_milestoneIndex < milestones.length, "Invalid milestone index");
-        milestones[_milestoneIndex] = milestones[milestones.length - 1];
-        milestones.pop();
     }
 
     function checkAndUnlockMilestone(uint256 _milestoneIndex) external {
@@ -51,6 +48,19 @@ contract GrantMilestones is GlobalACL {
             ISafe(BORG_SAFE).execTransactionFromModule(msg.sender, milestone.tokensToUnlock, "", Enum.Operation.Call);
         } else { // ERC20 token transfer
             ISafe(BORG_SAFE).execTransactionFromModule(milestone.token, 0, abi.encodeWithSignature("transfer(address,uint256)", msg.sender, milestone.tokensToUnlock), Enum.Operation.Call);
+        }
+    }
+
+    function revokeGrant() external {
+        if(!IConditionManager(REVOKE_CONDITIONS).checkConditions())
+            revert GrantMilestones_RevokeConditionsNotMet();
+        //Transfer the tokens back to the BORG_SAFE
+        for(uint256 i = 0; i < milestones.length; i++) {
+                if(milestones[i].token == address(0)) {
+                    ISafe(BORG_SAFE).execTransactionFromModule(msg.sender, milestones[i].tokensToUnlock, "", Enum.Operation.Call);
+                } else {
+                    ISafe(BORG_SAFE).execTransactionFromModule(milestones[i].token, 0, abi.encodeWithSignature("transfer(address,uint256)", BORG_SAFE, milestones[i].tokensToUnlock), Enum.Operation.Call);
+                }
         }
     }
 

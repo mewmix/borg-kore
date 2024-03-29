@@ -139,7 +139,7 @@ contract ProjectTest is Test {
     executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
-   function testMethodCooldown() public {
+   function testFailMethodCooldown() public {
 
         executeSingle(getSetGuardData(address(MULTISIG)));
 
