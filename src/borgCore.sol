@@ -14,6 +14,8 @@ contract borgCore is BaseGuard, GlobalACL {
     error BORG_CORE_ArraysDoNotMatch();
     error BORG_CORE_ExactMatchParamterFailed();
     error BORG_CORE_MethodNotAuthorized();
+    error BORG_CORE_MethodCooldownActive();
+    error BORG_CORE_NativeCooldownActive();
     
     /// Events
     event PolicyUpdated(address indexed contractAddress, string methodName, uint256 minValue, uint256 maxValue, bytes exactMatch, uint256 byteOffset, uint256 byteLength);
@@ -55,18 +57,14 @@ contract borgCore is BaseGuard, GlobalACL {
     }
 
     mapping(address => PolicyItem) public policy;
+    uint256 public nativeCooldown = 0;
+    uint256 public lastNativeExecutionTimestamp = 0;
 
     /// Whitelist Structs
     struct Recipient {
         bool approved;
         uint256 transactionLimit;
     }
-
-    /// Method IDs
-    /// @dev To check for transfers. See note above -- we can add these
-    /// to the whitelisted structs for more granular control.
-    bytes4 private constant TRANSFER_METHOD_ID = 0xa9059cbb;
-    bytes4 private constant TRANSFER_FROM_METHOD_ID = 0x23b872dd;
 
     /// Whitelist Mappings
     mapping(address => Recipient) public whitelistedRecipients;
@@ -104,29 +102,24 @@ contract borgCore is BaseGuard, GlobalACL {
             if(value > whitelistedRecipients[to].transactionLimit) {
                 revert BORG_CORE_AmountOverLimit();
             }
+            //check cooldown
+            if (!checkNativeCooldown()) {
+                revert BORG_CORE_NativeCooldownActive();
+            }
+            lastNativeExecutionTimestamp = block.timestamp;
          } else if (data.length >= 4) {
             if(policy[to].allowed == false) {
               revert BORG_CORE_InvalidContract();
             }
             if(policy[to].fullAccess != true)
-                if(isMethodCallAllowed(to, data))
-                    return;
-                else 
+                if(!isMethodCallAllowed(to, data))
                     revert BORG_CORE_MethodNotAuthorized();
-            bytes4 methodId = bytes4(data[:4]);
-            // Check for an ERC20 transfer
-            if (methodId == TRANSFER_METHOD_ID || methodId == TRANSFER_FROM_METHOD_ID) {
-                // Pull the destination address from the call data
-                address destination = abi.decode(data[4:36], (address));
-                // Pull the tx amount from the call data
-                uint256 amount = abi.decode(data[36:68], (uint256));
-                if(!whitelistedRecipients[destination].approved) {
-                   revert BORG_CORE_InvalidRecipient();
-                }
-                if((amount > whitelistedRecipients[destination].transactionLimit)) {
-                 revert BORG_CORE_AmountOverLimit();
-                }
-         }
+            //Check Cooldown
+            if (!checkCooldown(to, bytes4(data[:4]))) {
+                revert BORG_CORE_MethodCooldownActive();
+            }
+            //Update last executed time
+            policy[to].methods[bytes4(data[:4])].lastExecutionTimestamp = block.timestamp;
          }
          else {
             revert BORG_CORE_InvalidContract();
@@ -304,7 +297,12 @@ contract borgCore is BaseGuard, GlobalACL {
 
     }
 
-    function addMethodCooldown(
+    function updateNativeCooldown(uint256 _cooldownPeriod) public onlyOwner {
+        nativeCooldown = _cooldownPeriod;
+        lastNativeExecutionTimestamp = block.timestamp;
+    }
+
+    function updateMethodCooldown(
         address _contract,
         string memory _methodSignature,
         uint256 _cooldownPeriod
@@ -312,6 +310,8 @@ contract borgCore is BaseGuard, GlobalACL {
         bytes4 methodSelector = bytes4(keccak256(bytes(_methodSignature)));
         policy[_contract].methods[methodSelector].cooldownPeriod = _cooldownPeriod;
         policy[_contract].methods[methodSelector].lastExecutionTimestamp = block.timestamp;
+        //allow the method
+        policy[_contract].methods[methodSelector].allowed = true;
     }
 
     function removeParameterConstraint(
@@ -381,6 +381,28 @@ contract borgCore is BaseGuard, GlobalACL {
             }
         }
 
+        return true;
+    }
+
+    // Cooldown check
+    function checkCooldown(address _contract, bytes4 _methodSelector) public view returns (bool) {
+        MethodConstraint storage methodConstraint = policy[_contract].methods[_methodSelector];
+        if (methodConstraint.cooldownPeriod == 0) {
+            return true;
+        }
+        if (block.timestamp - methodConstraint.lastExecutionTimestamp < methodConstraint.cooldownPeriod) {
+            return false;
+        }
+        return true;
+    }
+
+    function checkNativeCooldown() public view returns (bool) {
+        if (nativeCooldown == 0) {
+            return true;
+        }
+        if (block.timestamp - lastNativeExecutionTimestamp < nativeCooldown) {
+            return false;
+        }
         return true;
     }
 }

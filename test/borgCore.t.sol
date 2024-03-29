@@ -139,6 +139,21 @@ contract ProjectTest is Test {
     executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
+   function testMethodCooldown() public {
+
+        executeSingle(getSetGuardData(address(MULTISIG)));
+
+        vm.prank(dao);
+        core.updateMethodCooldown(address(dai), "transfer(address,uint256)", 1 days);
+        
+        // First call should pass
+        executeSingle(getTransferData(address(dai), owner, 0.01 ether));
+        
+        // Second call should fail due to cooldown
+        vm.warp(block.timestamp + 1 hours); // Warp time, but not enough to pass the cooldown
+        executeSingle(getTransferData(address(dai), owner, 0.01 ether));
+    }
+
   /// @dev An ERC20 payment that is over the limit should revert.
   function testFailOnDaiOverpayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
@@ -151,7 +166,7 @@ contract ProjectTest is Test {
         "transfer(address,uint256)",
         _paramtype,
         0,
-        .1 ether,
+        .01 ether,
         36,
         32
     );
