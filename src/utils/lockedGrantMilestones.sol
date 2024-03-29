@@ -6,7 +6,7 @@ import "../libs/auth.sol";
 import "../interfaces/ICondition.sol";
 import "../interfaces/IConditionManager.sol";
 
-contract GrantMilestones is GlobalACL {
+contract GrantMilestones {
     address public immutable BORG_SAFE;
     address public immutable REVOKE_CONDITIONS;
 
@@ -22,7 +22,7 @@ contract GrantMilestones is GlobalACL {
     //Error Messages
     error GrantMilestones_RevokeConditionsNotMet();
 
-    constructor(Auth _auth, address _borgSafe, address _revokeConditions, Milestone[] memory _milestones) GlobalACL(_auth) {
+    constructor(address _borgSafe, address _revokeConditions, Milestone[] memory _milestones) {
         BORG_SAFE = _borgSafe;
         REVOKE_CONDITIONS = _revokeConditions;
         milestones = _milestones;
@@ -63,5 +63,4 @@ contract GrantMilestones is GlobalACL {
                 }
         }
     }
-
 }
