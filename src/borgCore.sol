@@ -92,7 +92,7 @@ contract borgCore is BaseGuard, GlobalACL {
         bytes calldata signatures, 
         address msgSender
     ) 
-        external view override
+        external override
     {
         if (value > 0 && data.length == 0) {
             // Native Gas transfer
@@ -310,8 +310,9 @@ contract borgCore is BaseGuard, GlobalACL {
         bytes4 methodSelector = bytes4(keccak256(bytes(_methodSignature)));
         policy[_contract].methods[methodSelector].cooldownPeriod = _cooldownPeriod;
         policy[_contract].methods[methodSelector].lastExecutionTimestamp = block.timestamp;
-        //allow the method
+        //Set allowances
         policy[_contract].methods[methodSelector].allowed = true;
+        policy[_contract].allowed = true;
     }
 
     function removeParameterConstraint(
@@ -385,7 +386,7 @@ contract borgCore is BaseGuard, GlobalACL {
     }
 
     // Cooldown check
-    function checkCooldown(address _contract, bytes4 _methodSelector) public view returns (bool) {
+    function checkCooldown(address _contract, bytes4 _methodSelector) internal returns (bool) {
         MethodConstraint storage methodConstraint = policy[_contract].methods[_methodSelector];
         if (methodConstraint.cooldownPeriod == 0) {
             return true;
@@ -396,7 +397,7 @@ contract borgCore is BaseGuard, GlobalACL {
         return true;
     }
 
-    function checkNativeCooldown() public view returns (bool) {
+    function checkNativeCooldown() internal returns (bool) {
         if (nativeCooldown == 0) {
             return true;
         }
