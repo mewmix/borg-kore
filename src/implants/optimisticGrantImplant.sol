@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
+import "../utils/lockedGrantMilestones.sol";
 
 contract optimisticGrantImplant is GlobalACL { //is baseImplant
 
@@ -50,6 +51,30 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
     }
 
     function createGrant(address _token, address _recipient, uint256 _amount) external {
+        require(currentGrantCount < grantCountLimit, "Grant limit reached");
+        require(block.timestamp < grantTimeLimit, "Grant time limit reached");
+        
+        if(allowOwners)
+            require(ISafe(BORG_SAFE).isOwner(msg.sender), "Caller is not an owner of the BORG");
+        else
+            require(BORG_SAFE == msg.sender, "Caller is not the BORG");
+
+        for (uint256 i = 0; i < approvedGrantTokens.length; i++) {
+            if (approvedGrantTokens[i].token == _token) {
+                require(approvedGrantTokens[i].amountSpent + _amount <= approvedGrantTokens[i].spendingLimit, "Grant spending limit reached");
+                approvedGrantTokens[i].amountSpent += _amount;
+                currentGrantCount++;
+                if(_token==address(0))
+                    ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call);
+                else
+                    ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
+                return;
+            }
+        }
+        revert("Invalid Grant token");
+    }
+
+    function createMilestoneGrant(address _token, address _recipient, uint256 _amount, GrantMilestones.Milestone[] memory _milestones) external {
         require(currentGrantCount < grantCountLimit, "Grant limit reached");
         require(block.timestamp < grantTimeLimit, "Grant time limit reached");
         

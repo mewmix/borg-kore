@@ -40,7 +40,7 @@ contract failSafeImplant is GlobalACL, ConditionManager { //is baseImplant
     }
 
     function recoverSafeFunds() external {
-        // require(msg.sender == authorizedCaller, "Caller is not authorized");
+
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         require(checkConditions(), "Conditions not met");
 
@@ -65,6 +65,34 @@ contract failSafeImplant is GlobalACL, ConditionManager { //is baseImplant
             }
            
         }
+    }
+
+    function recoverSafeFundsERC20(address _token) external onlyOwner {
+        ISafe gnosisSafe = ISafe(BORG_SAFE);
+        require(checkConditions(), "Conditions not met");
+        uint256 amountToSend = 0;
+        if(amountToSend==0)
+            amountToSend = IERC20(_token).balanceOf(address(BORG_SAFE));
+        bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", RECOVERY_ADDRESS, amountToSend);
+        // Request the Safe to execute the token transfer
+        bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
+        require(success, "Failed to execute transfer from Safe");
+    }
+
+    function recoverSafeFundsERC721(address _token, uint256 _id) external onlyOwner {
+        ISafe gnosisSafe = ISafe(BORG_SAFE);
+        require(checkConditions(), "Conditions not met");
+        bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", BORG_SAFE, RECOVERY_ADDRESS, _id);
+        bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
+        require(success, "Failed to execute transfer from Safe");
+    }
+
+    function recoverSafeFundsERC1155(address _token, uint256 _id, uint256 _amount) external onlyOwner {
+        ISafe gnosisSafe = ISafe(BORG_SAFE);
+        require(checkConditions(), "Conditions not met");
+        bytes memory data = abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes)", BORG_SAFE, RECOVERY_ADDRESS, _id, _amount, "");
+        bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
+        require(success, "Failed to execute transfer from Safe");
     }
 }
 

@@ -102,7 +102,7 @@ contract ProjectTest is Test {
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
-    opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
+    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(dao);
     opGrant.toggleAllowOwners(true); 
@@ -122,7 +122,7 @@ contract ProjectTest is Test {
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
-    opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
+    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     executeSingle(getCreateGrant(dai_addr, address(jr), 2 ether));
   }
@@ -133,7 +133,7 @@ contract ProjectTest is Test {
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
-    opGrant.setGrantLimits(1, 1711930764); // 1 grant by march 31, 2024
+    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(owner);
     opGrant.createGrant(dai_addr, address(jr), 2 ether);
@@ -150,7 +150,7 @@ contract ProjectTest is Test {
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
-    opGrant.setGrantLimits(5, 1711930764); // 1 grant by march 31, 2024
+    opGrant.setGrantLimits(5, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(owner);
     opGrant.createGrant(dai_addr, address(jr), 3 ether);
@@ -163,7 +163,7 @@ contract ProjectTest is Test {
     opGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
-    opGrant.setGrantLimits(6, 1711930764); // 1 grant by march 31, 2024
+    opGrant.setGrantLimits(6, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(owner);
     opGrant.createGrant(usdc_addr, address(jr), 1 ether);
