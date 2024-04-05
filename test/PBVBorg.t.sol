@@ -99,7 +99,7 @@ contract ProjectTest is Test {
   function testOpGrant() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -119,7 +119,7 @@ contract ProjectTest is Test {
     core.addContract(address(opGrant));
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -130,7 +130,7 @@ contract ProjectTest is Test {
   function testFailtOpGrantTooMany() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -147,7 +147,7 @@ contract ProjectTest is Test {
   function testFailtOpGrantTooMuch() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(5, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -160,7 +160,7 @@ contract ProjectTest is Test {
   function testFailtOpGrantWrongToken() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(6, block.timestamp +2592000); // 1 grant by march 31, 2024

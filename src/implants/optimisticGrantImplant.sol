@@ -9,35 +9,36 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
 
     address public immutable BORG_SAFE;
 
-    approvedGrantToken[] public approvedGrantTokens;
     uint256 public grantCountLimit;
     uint256 public currentGrantCount;
     uint256 public grantTimeLimit;
     bool allowOwners;
 
     struct approvedGrantToken { 
-        address token;
         uint256 spendingLimit;
         uint256 amountSpent;
     }
+
+    error optimisticGrantImplant_invalidToken();
+    error optimisticGrantImplant_GrantCountLimitReached();
+    error optimisticGrantImplant_GrantTimeLimitReached();
+    error optimisticGrantImplant_GrantSpendingLimitReached();
+    error optimisticGrantImplant_CallerNotBORGMember();
+    error optimisticGrantImplant_CallerNotBORG();
+
+    mapping(address => approvedGrantToken) public approvedGrantTokens;
 
     constructor(Auth _auth, address _borgSafe) GlobalACL(_auth) {
         BORG_SAFE = _borgSafe;
         allowOwners = false;
     }
 
-    function addApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {
-        approvedGrantTokens.push(approvedGrantToken(_token, _spendingLimit, 0));
+    function updateApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {
+        approvedGrantTokens[_token] = approvedGrantToken(_spendingLimit, 0);
     }
 
     function removeApprovedGrantToken(address _token) external onlyOwner {
-        for (uint256 i = 0; i < approvedGrantTokens.length; i++) {
-            if (approvedGrantTokens[i].token == _token) {
-                approvedGrantTokens[i] = approvedGrantTokens[approvedGrantTokens.length - 1];
-                approvedGrantTokens.pop();
-                break;
-            }
-        }
+        approvedGrantTokens[_token] = approvedGrantToken(0, 0);
     }
 
     function setGrantLimits(uint256 _grantCountLimit, uint256 _grantTimeLimit) external onlyOwner {
@@ -51,51 +52,69 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
     }
 
     function createGrant(address _token, address _recipient, uint256 _amount) external {
-        require(currentGrantCount < grantCountLimit, "Grant limit reached");
-        require(block.timestamp < grantTimeLimit, "Grant time limit reached");
+        if(currentGrantCount >= grantCountLimit)
+            revert optimisticGrantImplant_GrantCountLimitReached();
+        if(block.timestamp >= grantTimeLimit)
+            revert optimisticGrantImplant_GrantTimeLimitReached();
         
-        if(allowOwners)
-            require(ISafe(BORG_SAFE).isOwner(msg.sender), "Caller is not an owner of the BORG");
-        else
-            require(BORG_SAFE == msg.sender, "Caller is not the BORG");
-
-        for (uint256 i = 0; i < approvedGrantTokens.length; i++) {
-            if (approvedGrantTokens[i].token == _token) {
-                require(approvedGrantTokens[i].amountSpent + _amount <= approvedGrantTokens[i].spendingLimit, "Grant spending limit reached");
-                approvedGrantTokens[i].amountSpent += _amount;
-                currentGrantCount++;
-                if(_token==address(0))
-                    ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call);
-                else
-                    ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
-                return;
-            }
+        if(allowOwners) {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert optimisticGrantImplant_CallerNotBORGMember();
         }
-        revert("Invalid Grant token");
+        else {
+            if(BORG_SAFE != msg.sender)
+                revert optimisticGrantImplant_CallerNotBORG();
+         }
+
+        approvedGrantToken storage approvedToken = approvedGrantTokens[_token];
+        if (approvedToken.spendingLimit == 0) {
+            revert optimisticGrantImplant_invalidToken();
+        }
+        if(approvedToken.amountSpent + _amount > approvedToken.spendingLimit)
+            revert optimisticGrantImplant_GrantSpendingLimitReached();
+        approvedToken.amountSpent += _amount;
+        currentGrantCount++;
+        if(_token==address(0))
+            ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call);
+        else
+            ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
     }
 
-    function createMilestoneGrant(address _token, address _recipient, uint256 _amount, GrantMilestones.Milestone[] memory _milestones) external {
-        require(currentGrantCount < grantCountLimit, "Grant limit reached");
-        require(block.timestamp < grantTimeLimit, "Grant time limit reached");
-        
-        if(allowOwners)
-            require(ISafe(BORG_SAFE).isOwner(msg.sender), "Caller is not an owner of the BORG");
-        else
-            require(BORG_SAFE == msg.sender, "Caller is not the BORG");
 
-        for (uint256 i = 0; i < approvedGrantTokens.length; i++) {
-            if (approvedGrantTokens[i].token == _token) {
-                require(approvedGrantTokens[i].amountSpent + _amount <= approvedGrantTokens[i].spendingLimit, "Grant spending limit reached");
-                approvedGrantTokens[i].amountSpent += _amount;
-                currentGrantCount++;
-                if(_token==address(0))
-                    ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call);
-                else
-                    ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
-                return;
-            }
+    function createMilestoneGrant(address _recipient, address _revokeConditions, GrantMilestones.Milestone[] memory _milestones) external {
+
+        if(currentGrantCount >= grantCountLimit)
+            revert optimisticGrantImplant_GrantCountLimitReached();
+        if(block.timestamp >= grantTimeLimit)
+            revert optimisticGrantImplant_GrantTimeLimitReached();
+
+        GrantMilestones grantMilestones = new GrantMilestones(_recipient, BORG_SAFE, _revokeConditions, _milestones);
+        
+        if(allowOwners) {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert optimisticGrantImplant_CallerNotBORGMember();
         }
-        revert("Invalid Grant token");
+        else {
+            if(BORG_SAFE != msg.sender)
+                revert optimisticGrantImplant_CallerNotBORG();
+         }
+
+        for (uint256 i = 0; i < _milestones.length; i++) {
+            approvedGrantToken storage approvedToken = approvedGrantTokens[_milestones[i].token];
+            if (approvedToken.spendingLimit == 0) {
+                revert optimisticGrantImplant_invalidToken();
+            }
+            
+            if(approvedToken.amountSpent + _milestones[i].tokensToUnlock > approvedToken.spendingLimit)
+                revert optimisticGrantImplant_GrantSpendingLimitReached();
+
+            approvedToken.amountSpent += _milestones[i].tokensToUnlock;
+            currentGrantCount++;
+            if(_milestones[i].token==address(0))
+                ISafe(BORG_SAFE).execTransactionFromModule(address(grantMilestones), _milestones[i].tokensToUnlock, "", Enum.Operation.Call);
+            else
+                ISafe(BORG_SAFE).execTransactionFromModule(_milestones[i].token, 0, abi.encodeWithSignature("transfer(address,uint256)", address(grantMilestones), _milestones[i].tokensToUnlock), Enum.Operation.Call);
+        }
     }
 
 

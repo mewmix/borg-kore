@@ -246,7 +246,7 @@ function testSign_AllSigners_AndLogic() public {
   function testOpGrant() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -266,7 +266,7 @@ function testSign_AllSigners_AndLogic() public {
     core.addContract(address(opGrant));
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -277,7 +277,7 @@ function testSign_AllSigners_AndLogic() public {
   function testFailtOpGrantTooMany() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -294,7 +294,7 @@ function testSign_AllSigners_AndLogic() public {
   function testFailtOpGrantTooMuch() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(5, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -307,7 +307,7 @@ function testSign_AllSigners_AndLogic() public {
   function testFailtOpGrantWrongToken() public {
 
     vm.prank(dao);
-    opGrant.addApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(6, block.timestamp +2592000); // 1 grant by march 31, 2024
