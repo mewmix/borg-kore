@@ -49,7 +49,7 @@ contract ProjectTest is Test {
 
 function testzkSync() public {
 
-    assert(auth.hasRole(keccak256("OWNER"), address(dao)));
+    auth.onlyRole(auth.OWNER_ROLE(), address(dao));
   }
 
 }
