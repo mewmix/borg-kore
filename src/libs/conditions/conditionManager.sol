@@ -16,6 +16,7 @@ contract ConditionManager is GlobalACL {
     }
 
     Condition[] public conditions;
+    mapping(bytes4 => Condition[]) public conditionsByFunction;
 
     error ConditionDoesNotExist();
 
@@ -71,5 +72,19 @@ contract ConditionManager is GlobalACL {
             }
             return result;
         }
+    }
+
+    modifier conditionCheck() {
+        Condition[] memory conditionsToCheck = conditionsByFunction[msg.sig];
+        for(uint256 i = 0; i < conditionsToCheck.length; i++) {
+            if(conditionsToCheck[i].op == Logic.AND) {
+                require(ICondition(conditionsToCheck[i].condition).checkCondition(), "ConditionManager: condition not met");
+            } else {
+                if(ICondition(conditionsToCheck[i].condition).checkCondition()) {
+                   break;
+                }
+            }
+        }
+        _;
     }
 }
