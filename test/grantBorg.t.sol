@@ -136,7 +136,7 @@ contract ProjectTest is Test {
         bytes[] memory calldatas = new bytes[](1);
         string memory description = "Proposal #1: Change Something";
 
-        // Mock action - for demonstration, target the DAO contract itself with a dummy action
+        // Mock action - for demonstration
         targets[0] = address(mockDao);
         values[0] = 0;
         calldatas[0] = abi.encodeWithSignature("quorum(uint256)", 1);
@@ -144,7 +144,7 @@ contract ProjectTest is Test {
         // Create the proposal
         uint256 proposalId = mockDao.propose(targets, values, calldatas, description);
 
-        // Additional steps would include voting on and executing the proposal
+       
   }
 
   function testOpGrantBORG() public {

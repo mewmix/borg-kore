@@ -87,9 +87,8 @@ contract failSafeImplant is GlobalACL, ConditionManager { //is baseImplant
         require(success, "Failed to execute transfer from Safe");
     }
 
-    function recoverSafeFundsERC1155(address _token, uint256 _id, uint256 _amount) external onlyOwner {
+    function recoverSafeFundsERC1155(address _token, uint256 _id, uint256 _amount) external onlyOwner conditionCheck {
         ISafe gnosisSafe = ISafe(BORG_SAFE);
-        require(checkConditions(), "Conditions not met");
         bytes memory data = abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes)", BORG_SAFE, RECOVERY_ADDRESS, _id, _amount, "");
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
         require(success, "Failed to execute transfer from Safe");
