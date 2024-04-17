@@ -128,7 +128,7 @@ contract daoVoteGrantImplant is GlobalACL, ConditionManager { //is baseImplant
          //cycle through any allocations and approve the metavest to spend the amount
         uint256 _milestoneTotal;
         for (uint256 i; i < _metaVestDetails.milestones.length; ++i) {
-            _milestoneTotal += _metaVestDetails.milestoneAwards[i];
+            _milestoneTotal += _metaVestDetails.milestones[i].milestoneAward;
         }
         uint256 _total = _metaVestDetails.allocation.tokenStreamTotal +
             _metaVestDetails.allocation.cliffCredit +
