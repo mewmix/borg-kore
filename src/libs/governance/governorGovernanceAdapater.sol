@@ -25,4 +25,9 @@ contract BalanceCondition is BaseGovernanceAdapter {
     function cancelProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override returns (uint256) {
         return IGovernor(governorContract).cancel(targets, values, calldatas, descriptionHash);
     }
+
+    function vote(uint256 proposalId, uint8 support) public override returns(uint256) {
+        return IGovernor(governorContract).castVote(proposalId, support);
+    }
+
 }

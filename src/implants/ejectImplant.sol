@@ -55,7 +55,7 @@ contract ejectImplant is
     }
 
     /// @notice for a msg.sender 'owner' to self-eject from the 'gnosisSafe'
-    function selfEject() public {
+    function selfEject() public conditionCheck {
         if (!gnosisSafe.isOwner(msg.sender)) revert ejectImplant_NotOwner();
 
         address[] memory owners = gnosisSafe.getOwners();

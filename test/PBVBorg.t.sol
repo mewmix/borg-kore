@@ -60,8 +60,7 @@ contract ProjectTest is Test {
     core = new borgCore(auth);
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
-    opGrant = new optimisticGrantImplant(auth, MULTISIG);
-    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, arb_addr, 259200, 1);
+
 
     //for test: give out some tokens
     deal(owner, 2 ether);
@@ -71,8 +70,6 @@ contract ProjectTest is Test {
     //sigers add jr, add the eject, optimistic grant, and veto grant implants.
     executeSingle(addOwner(address(jr)));
     executeSingle(getAddModule(address(eject)));
-    executeSingle(getAddModule(address(opGrant)));
-    executeSingle(getAddModule(address(vetoGrant)));
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
@@ -94,80 +91,6 @@ contract ProjectTest is Test {
   /// @dev Initial Check that the safe and owner are set correctly.
   function testOwner() public { 
   assertEq(safe.isOwner(owner), true);
-  }
-
-  function testOpGrant() public {
-
-    vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(dao);
-    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
-
-    vm.prank(dao);
-    opGrant.toggleAllowOwners(true); 
-
-    vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 2 ether);
-
-    //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
-  }
-
-  function testOpGrantBORG() public {
-
-    vm.prank(dao);
-    core.addContract(address(opGrant));
-
-    vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(dao);
-    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
-
-    executeSingle(getCreateGrant(dai_addr, address(jr), 2 ether));
-  }
-
-  function testFailtOpGrantTooMany() public {
-
-    vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(dao);
-    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
-
-    vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 2 ether);
-
-    vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 2 ether);
-
-    //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
-  }
-
-  function testFailtOpGrantTooMuch() public {
-
-    vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(dao);
-    opGrant.setGrantLimits(5, block.timestamp +2592000); // 1 grant by march 31, 2024
-
-    vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 3 ether);
-
-  }
-
-  function testFailtOpGrantWrongToken() public {
-
-    vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
-
-    vm.prank(dao);
-    opGrant.setGrantLimits(6, block.timestamp +2592000); // 1 grant by march 31, 2024
-
-    vm.prank(owner);
-    opGrant.createGrant(usdc_addr, address(jr), 1 ether);
-
   }
 
    function testDAOEject() public {

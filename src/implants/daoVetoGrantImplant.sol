@@ -5,15 +5,16 @@ import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
 import "forge-std/interfaces/IERC20.sol";
 import "../interfaces/IGovernanceAdapter.sol";
+import "../libs/conditions/conditionManager.sol";
 
-contract daoVetoGrantImplant is GlobalACL { //is baseImplant
+contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
 
     address public immutable BORG_SAFE;
     address public immutable governanceToken;
     uint256 public duration;
     uint256 public objectionsThreshold;
     uint256 public lastMotionId;
-  address public governanceAdapter;
+    address public governanceAdapter;
 
      struct Proposal {
         uint256 id;
@@ -38,12 +39,13 @@ contract daoVetoGrantImplant is GlobalACL { //is baseImplant
     mapping(uint256 => uint256) internal proposalIndicesByProposalId;
     uint256 internal constant PERC_SCALE = 10000;
 
-    constructor(Auth _auth, address _borgSafe, address _governanceToken, uint256 _duration, uint256 _objectionsThreshold) GlobalACL(_auth) {
+    constructor(Auth _auth, address _borgSafe, address _governanceToken, uint256 _duration, uint256 _objectionsThreshold, address _governanceAdapter) ConditionManager(_auth) {
         BORG_SAFE = _borgSafe;
         governanceToken = _governanceToken;
         duration = _duration;
         objectionsThreshold = _objectionsThreshold;
         lastMotionId=0;
+        governanceAdapter = _governanceAdapter;
     }
 
     function updateDuration(uint256 _duration) external onlyOwner {

@@ -42,8 +42,7 @@ contract ProjectTest is Test {
     core = new borgCore(auth);
   //  failSafe = new failSafe(auth, address(safe), dao);
   //  eject = new ejectImplant(auth, MULTISIG, address(failSafe));
-    opGrant = new optimisticGrantImplant(auth, MULTISIG);
-    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, arb_addr, 259200, 1);
+
  
   }
 

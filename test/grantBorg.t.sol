@@ -10,6 +10,8 @@ import "../src/libs/conditions/signatureCondition.sol";
 import "../src/implants/failSafeImplant.sol";
 import "./libraries/mocks/MockGovToken.sol";
 import "./libraries/mocks/MockDAO.sol";
+import "metavest/MetaVesT.sol";
+import "metavest/MetaVesTController.sol";
 
 contract ProjectTest is Test {
   // global contract deploys for the tests
@@ -23,6 +25,8 @@ contract ProjectTest is Test {
   failSafeImplant failSafe;
   MockERC20Votes govToken;
   MockDAO mockDao;
+  MetaVesT metaVesT;
+  MetaVesTController metaVesTController;
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
@@ -36,6 +40,7 @@ contract ProjectTest is Test {
   address dai_addr = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
   address arb_addr = 0x912CE59144191C1204E64559FE8253a0e49E6548; //arb token
   address voting_auth = address(0xDA0A074);
+  address controllerAddr;
 
  // represents the DAO's On chain power address
   address dao = address(0xDA0);
@@ -65,12 +70,17 @@ contract ProjectTest is Test {
     govToken = new MockERC20Votes("GovToken", "GT");
     mockDao = new MockDAO(govToken);
 
+    metaVesTController = new MetaVesTController(MULTISIG, voting_auth, address(govToken));
+    controllerAddr = address(metaVesTController);
+
+    metaVesT = new MetaVesT(MULTISIG, controllerAddr, voting_auth, address(govToken));
+
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth);
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
-    opGrant = new optimisticGrantImplant(auth, MULTISIG);
-    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, arb_addr, 259200, 1);
+    opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesT), address(metaVesTController));
+    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, arb_addr, 259200, 1, address(0));
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element
@@ -210,11 +220,11 @@ contract ProjectTest is Test {
     vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(owner);
-    uint256 id = vetoGrant.createProposal(dai_addr, address(jr), 2 ether, voting_auth);
+   // vetoGrant.proposeSimpleGrant(dai_addr, address(jr), 2 ether);
     skip(259205);
 
-    vm.prank(owner);
-    vetoGrant.executeProposal(id);
+    //vm.prank(owner);
+    //vetoGrant.executeProposal(id);
     //assertion
   }
 

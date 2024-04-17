@@ -5,3 +5,4 @@ forge-std/=lib/forge-std/src/
 solady/=lib/safe-tools/lib/solady/src/
 chainlink/=lib/chainlink/contracts/src/
 openzeppelin/=lib/openzeppelin-contracts/
+metavest/=lib/MetaVesT/src/
