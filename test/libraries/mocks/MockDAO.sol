@@ -6,8 +6,9 @@ import "openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import "openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "forge-std/interfaces/IERC20.sol";
+import "../../../src/libs/auth.sol";
 
-contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple {
+contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
     struct ProposalThresholds {
         uint256 quorum;
         uint256 threshold;
@@ -18,7 +19,7 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple {
     mapping(uint256 => ProposalThresholds) public proposalThresholds;
     mapping(uint256 => ProposalVote) public _proposalVotes;
 
-    constructor(IVotes _token)
+    constructor(IVotes _token, Auth _auth) GlobalACL(_auth)
         Governor("CustomGovernor")
         GovernorVotes(_token)
         GovernorCountingSimple()
@@ -32,7 +33,7 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple {
         uint256 quorum,
         uint256 threshold,
         uint256 length
-    ) public returns (uint256) {
+    ) public onlyAdmin returns (uint256) {
         lastLength = length;
         uint256 proposalId = propose(targets, values, calldatas, description);
         proposalThresholds[proposalId] = ProposalThresholds({
@@ -41,6 +42,15 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple {
             length: length
         });
         return proposalId;
+    }
+
+    function propose(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description
+    ) public override(Governor) onlyAdmin returns (uint256) {
+        return super.propose(targets, values, calldatas, description);
     }
 
     function _quorumReached(uint256 proposalId) internal view override(Governor, GovernorCountingSimple) returns (bool) {
@@ -63,13 +73,18 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple {
         return proposal.forVotes;
     }
 
+    function clock() public view override(Governor, GovernorVotes) returns (uint48) {
+        return uint48(block.number-1);
+    }
+
+
       // Implementing required abstract functions
     function quorum(uint256 blockNumber) public view override returns (uint256) {
         return 1; 
     }
 
     function votingDelay() public view override returns (uint256) {
-        return 1; 
+        return 0; 
     }
 
     function votingPeriod() public view override returns (uint256) {

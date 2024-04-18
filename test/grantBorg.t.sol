@@ -4,6 +4,7 @@ import "forge-std/Test.sol";
 import "../src/borgCore.sol";
 import "../src/implants/ejectImplant.sol";
 import "../src/implants/optimisticGrantImplant.sol";
+import "../src/implants/daoVoteGrantImplant.sol";
 import "../src/implants/daoVetoGrantImplant.sol";
 import "./libraries/safe.t.sol";
 import "../src/libs/conditions/signatureCondition.sol";
@@ -12,6 +13,7 @@ import "./libraries/mocks/MockGovToken.sol";
 import "./libraries/mocks/MockDAO.sol";
 import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
+import "../src/libs/governance/flexGovernanceAdapater.sol";
 
 contract ProjectTest is Test {
   // global contract deploys for the tests
@@ -20,6 +22,7 @@ contract ProjectTest is Test {
   ejectImplant eject;
   Auth auth;
   optimisticGrantImplant opGrant;
+  daoVoteGrantImplant voteGrant;
   daoVetoGrantImplant vetoGrant;
   SignatureCondition sigCondition;
   failSafeImplant failSafe;
@@ -27,6 +30,7 @@ contract ProjectTest is Test {
   MockDAO mockDao;
   MetaVesT metaVesT;
   MetaVesTController metaVesTController;
+  FlexGovernanceAdapter governanceAdapter;
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
@@ -65,10 +69,15 @@ contract ProjectTest is Test {
     
     vm.prank(dao);
     auth = new Auth();
+    vm.prank(dao);
+    auth.updateRole(owner, 98);
 
     //set up a mock DAO Governance contract
     govToken = new MockERC20Votes("GovToken", "GT");
-    mockDao = new MockDAO(govToken);
+    mockDao = new MockDAO(govToken, auth);
+
+    //set up the governance adapter for our Implants
+    governanceAdapter = new FlexGovernanceAdapter(address(mockDao));
 
     metaVesTController = new MetaVesTController(MULTISIG, voting_auth, address(govToken));
     controllerAddr = address(metaVesTController);
@@ -81,6 +90,12 @@ contract ProjectTest is Test {
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
     opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesT), address(metaVesTController));
     vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, arb_addr, 259200, 1, address(0));
+    voteGrant = new daoVoteGrantImplant(auth, MULTISIG, 259200, 1000, 4000, address(governanceAdapter), address(mockDao), address(metaVesT), address(metaVesTController));
+    vm.prank(dao);
+    auth.updateRole(address(voteGrant), 98);
+    vm.prank(dao);
+    auth.updateRole(address(governanceAdapter), 98);
+
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element
@@ -92,6 +107,7 @@ contract ProjectTest is Test {
     //for test: give out some tokens
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
+    deal(dai_addr, MULTISIG, 2000 ether);
     deal(address(arb), vip, 1000000000 ether);
 
     //sigers add jr, add the eject, optimistic grant, and veto grant implants.
@@ -111,7 +127,7 @@ contract ProjectTest is Test {
     //for test: give some tokens out
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
-    deal(address(dai), MULTISIG, 2 ether);
+    deal(address(dai), MULTISIG, 2000 ether);
  
   }
 
@@ -139,6 +155,7 @@ contract ProjectTest is Test {
     //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
   }
 
+
  function testCreateProposal() public {
         // Define proposal parameters
         address[] memory targets = new address[](1);
@@ -152,6 +169,7 @@ contract ProjectTest is Test {
         calldatas[0] = abi.encodeWithSignature("quorum(uint256)", 1);
 
         // Create the proposal
+        vm.prank(dao);
         uint256 proposalId = mockDao.propose(targets, values, calldatas, description);
 
        
@@ -226,6 +244,28 @@ contract ProjectTest is Test {
     //vm.prank(owner);
     //vetoGrant.executeProposal(id);
     //assertion
+  }
+
+  function testSimpleVoteGrant() public
+  {
+    vm.prank(owner);
+    uint256 startTimestamp = block.timestamp;
+  
+    uint256 grantId = voteGrant.proposeDirectGrant(dai_addr, address(jr), 1000 ether, "ipfs link to grant details");
+    //warp ahead 100 blocks
+    uint256 newTimestamp = startTimestamp + 100; // 101
+    vm.prank(vip);
+    vm.warp(newTimestamp);
+    skip(10);
+    mockDao.castVote(grantId, 1);
+    skip(859205);
+    //create a new prop struct from daoVoteGrantImplant
+   // daoVoteGrantImplant.prop memory proposal = daoVoteGrantImplant.prop({targets: new address[](1), values: new uint256[](1), proposalBytecodes: new bytes[](1), desc: "ipfs link to grant details"});
+   // daoVoteGrantImplant.prop memory proposal = voteGrant.proposals(grantId);
+    daoVoteGrantImplant.prop memory proposal = voteGrant.getProp(grantId);
+
+    mockDao.execute(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+
   }
 
    function testDAOEject() public {

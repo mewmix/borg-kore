@@ -36,6 +36,10 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
         return success;
     }
 
+    function clock() public view override(Votes) returns (uint48) {
+        return uint48(block.number-1);
+    }
+
     function _update(
         address from,
         address to,

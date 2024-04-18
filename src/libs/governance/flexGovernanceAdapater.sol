@@ -1,9 +1,9 @@
 pragma solidity ^0.8.19;
 
 import "./baseGovernanceAdapater.sol";
-import "openzeppelin/contracts/governance/IGovernor.sol";
+import "../../interfaces/IMockDAO.sol";
 
-contract BalanceCondition is BaseGovernanceAdapter {
+contract FlexGovernanceAdapter is BaseGovernanceAdapter {
     address public governorContract;
 
      constructor(address _goverernorContract) {
@@ -14,20 +14,20 @@ contract BalanceCondition is BaseGovernanceAdapter {
         governorContract = _goverernorContract;
     }
 
-    function createProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description) public override returns (uint256 proposalId) {
-        return IGovernor(governorContract).propose(targets, values, calldatas, description);
+    function createProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description, uint256 quorum, uint256 threshold, uint256 duration) public override returns (uint256 proposalId) {
+        return IMockDAO(governorContract).proposeWithThresholds(targets, values, calldatas, description, quorum, threshold, duration);
     }
 
     function executeProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override returns (uint256) {
-        return IGovernor(governorContract).execute(targets, values, calldatas, descriptionHash);
+        return IMockDAO(governorContract).execute(targets, values, calldatas, descriptionHash);
     }
 
     function cancelProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override returns (uint256) {
-        return IGovernor(governorContract).cancel(targets, values, calldatas, descriptionHash);
+        return IMockDAO(governorContract).cancel(targets, values, calldatas, descriptionHash);
     }
 
     function vote(uint256 proposalId, uint8 support) public override returns(uint256) {
-        return IGovernor(governorContract).castVote(proposalId, support);
+        return IMockDAO(governorContract).castVote(proposalId, support);
     }
 
 }

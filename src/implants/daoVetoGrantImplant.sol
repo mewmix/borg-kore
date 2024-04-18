@@ -15,21 +15,18 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
     uint256 public objectionsThreshold;
     uint256 public lastMotionId;
     address public governanceAdapter;
+    address public governanceExecutor;
 
-     struct Proposal {
+    struct Proposal {
         uint256 id;
         uint256 duration;
         uint256 startTime;
-        address token;
-        address recipient;
-        uint256 amount;
-        address votingAuthority;
+        bytes cdata;
     }
 
     struct approvedGrantToken { 
         address token;
-        uint256 spendingLimit;
-        uint256 amountSpent;
+        uint256 grantLimit;
     }
 
     error daoVetoGrantImplant_NotAuthorized();
@@ -53,7 +50,7 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
     }
 
     function addApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {
-        approvedGrantTokens.push(approvedGrantToken(_token, _spendingLimit, 0));
+        approvedGrantTokens.push(approvedGrantToken(_token, _spendingLimit));
     }
 
     function removeApprovedGrantToken(address _token) external onlyOwner {
@@ -69,7 +66,6 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
     function setGovernanceAdapter(address _governanceAdapter) external onlyOwner {
         governanceAdapter = _governanceAdapter;
     }
-
 
     function updateObjectionsThreshold(uint256 _objectionsThreshold) external onlyOwner {
         objectionsThreshold = _objectionsThreshold;
@@ -99,21 +95,13 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         require(ISafe(BORG_SAFE).isOwner(msg.sender), "Caller is not an owner of the BORG");
         require(_isTokenApproved(_token), "Token not approved for grants");
         approvedGrantToken storage approvedToken = getApprovedGrantTokenByAddress(_token);
-        require(approvedToken.amountSpent + _amount <= approvedToken.spendingLimit, "Grant spending limit reached");
 
 
         Proposal storage newProposal = currentProposals.push();
         _newProposalId = ++lastMotionId;
         newProposal.id = _newProposalId;
         newProposal.startTime = block.timestamp;
-        newProposal.duration = duration;
-        newProposal.token = _token;
-        newProposal.recipient = _recipient;
-        newProposal.amount = _amount;
-        newProposal.votingAuthority = _votingAuthority;
         proposalIndicesByProposalId[_newProposalId] = currentProposals.length;
-
-        
     }
 
     // should only be executed by a BORG owner/member
@@ -123,18 +111,6 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         Proposal storage proposal = _getProposal(_proposalId);
         require(proposal.startTime + proposal.duration <= block.timestamp, "Proposal is not ready to be executed");
 
-        address recipient = proposal.recipient;
-        address token = proposal.token;
-        uint256 amount = proposal.amount;
-        _deleteProposal(_proposalId);
-        approvedGrantToken storage approvedToken = getApprovedGrantTokenByAddress(token);
-
-         if(token==address(0))
-            ISafe(BORG_SAFE).execTransactionFromModule(recipient, amount, "", Enum.Operation.Call);
-        else
-            ISafe(BORG_SAFE).execTransactionFromModule(token, 0, abi.encodeWithSignature("transfer(address,uint256)", recipient, amount), Enum.Operation.Call);
-
-        approvedToken.amountSpent += amount;
     }
 
     function _getProposal(uint256 _proposalId) internal view returns (Proposal storage) {

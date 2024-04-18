@@ -54,7 +54,7 @@ contract ejectImplant is
         );
     }
 
-    /// @notice for a msg.sender 'owner' to self-eject from the 'gnosisSafe'
+    /// @notice for a msg.sender 'owner' to self-eject from the BORG
     function selfEject() public conditionCheck {
         if (!gnosisSafe.isOwner(msg.sender)) revert ejectImplant_NotOwner();
 
