@@ -39,7 +39,7 @@ contract ProjectTest is Test {
     vm.startPrank(dao);
     auth = new Auth();
     vm.stopPrank();
-    core = new borgCore(auth);
+    core = new borgCore(auth, 0x1);
   //  failSafe = new failSafe(auth, address(safe), dao);
   //  eject = new ejectImplant(auth, MULTISIG, address(failSafe));
 

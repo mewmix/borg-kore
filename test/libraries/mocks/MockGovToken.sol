@@ -10,7 +10,6 @@ contract MockERC20Votes is ERC20, ERC20Permit, ERC20Votes {
         ERC20Permit(name)
     {
         _mint(msg.sender, 1e30); // Mint tokens for the deployer for testing
-        
     }
 
     function superTransferFrom(

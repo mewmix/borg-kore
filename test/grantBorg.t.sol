@@ -36,13 +36,14 @@ contract ProjectTest is Test {
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
 
   // Set&pull our addresses for the tests. This is set for forked Arbitrum mainnet
-  address MULTISIG = 0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
+  address MULTISIG = 0x3e7C6446F6724a3260c6AD7d17C3857FdeB586BB;//0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
   address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //owner of the safe protaganist
   address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f; //"junior" antagonist
   address vip = 0xC2ab7443999c32498e7B0295335025e549515025; //vip address that has a lot of voting power in the test governance token
-  address usdc_addr = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
-  address dai_addr = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
+  address usdc_addr = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;//0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
+  address dai_addr = 0x3e622317f8C93f7328350cF0B56d9eD4C620C5d6;//0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
   address arb_addr = 0x912CE59144191C1204E64559FE8253a0e49E6548; //arb token
+  address weth_addr = 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9;
   address voting_auth = address(0xDA0A074);
   address controllerAddr;
 
@@ -52,7 +53,8 @@ contract ProjectTest is Test {
   // Adding some tokens for the test
   ERC20 usdc;// = ERC20(usdc_addr);
   ERC20 dai;// = ERC20(dai_addr);
-  ERC20 arb;// = ERC20(arb);
+  ERC20 weth = ERC20(weth_addr);
+  //ERC20 arb;// = ERC20(arb);
 
   /// Set our initial state: (All other tests are in isolation but share this state)
   /// 1. Set up the safe
@@ -63,7 +65,7 @@ contract ProjectTest is Test {
   function setUp() public {
     ERC20 usdc = ERC20(usdc_addr);
     ERC20 dai = ERC20(dai_addr);
-    ERC20 arb = ERC20(arb_addr);
+    //ERC20 arb = ERC20(arb_addr);
     deal(dao, 2 ether);
     
     
@@ -75,6 +77,8 @@ contract ProjectTest is Test {
     //set up a mock DAO Governance contract
     govToken = new MockERC20Votes("GovToken", "GT");
     mockDao = new MockDAO(govToken, auth);
+    deal(address(govToken), address(this), 1e29);
+    govToken.delegate(address(this));
 
     //set up the governance adapter for our Implants
     governanceAdapter = new FlexGovernanceAdapter(address(mockDao));
@@ -85,12 +89,12 @@ contract ProjectTest is Test {
     metaVesT = new MetaVesT(MULTISIG, controllerAddr, voting_auth, address(govToken));
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth);
+    core = new borgCore(auth, 0x1);
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
     opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesT), address(metaVesTController));
-    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, arb_addr, 259200, 1, address(0));
-    voteGrant = new daoVoteGrantImplant(auth, MULTISIG, 259200, 1000, 4000, address(governanceAdapter), address(mockDao), address(metaVesT), address(metaVesTController));
+    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, address(govToken), 259200, 1, address(0));
+    voteGrant = new daoVoteGrantImplant(auth, MULTISIG, 0, 10, 40, address(governanceAdapter), address(mockDao), address(metaVesT), address(metaVesTController));
     vm.prank(dao);
     auth.updateRole(address(voteGrant), 98);
     vm.prank(dao);
@@ -106,9 +110,9 @@ contract ProjectTest is Test {
 
     //for test: give out some tokens
     deal(owner, 2 ether);
-    deal(MULTISIG, 2 ether);
-    deal(dai_addr, MULTISIG, 2000 ether);
-    deal(address(arb), vip, 1000000000 ether);
+    deal(MULTISIG, 2000 ether);
+  //  deal(usdc_addr, MULTISIG, 2000 ether);
+    //deal(address(arb), vip, 1000000000 ether);
 
     //sigers add jr, add the eject, optimistic grant, and veto grant implants.
     executeSingle(addOwner(address(jr)));
@@ -125,9 +129,12 @@ contract ProjectTest is Test {
     executeSingle(getSetGuardData(address(MULTISIG)));
 
     //for test: give some tokens out
-    deal(owner, 2 ether);
+    deal(owner, 2000 ether);
     deal(MULTISIG, 2 ether);
     deal(address(dai), MULTISIG, 2000 ether);
+    //wrap ether from the multisig
+
+
  
   }
 
@@ -253,17 +260,25 @@ contract ProjectTest is Test {
   
     uint256 grantId = voteGrant.proposeDirectGrant(dai_addr, address(jr), 1000 ether, "ipfs link to grant details");
     //warp ahead 100 blocks
-    uint256 newTimestamp = startTimestamp + 100; // 101
-    vm.prank(vip);
-    vm.warp(newTimestamp);
-    skip(10);
+   // uint256 newTimestamp = startTimestamp + 100; // 101
+   // vm.warp(newTimestamp);
+    skip(1000);
+    assertTrue(govToken.balanceOf(address(this)) > 0);
+    assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Active);
     mockDao.castVote(grantId, 1);
-    skip(859205);
+    skip(86400);
     //create a new prop struct from daoVoteGrantImplant
    // daoVoteGrantImplant.prop memory proposal = daoVoteGrantImplant.prop({targets: new address[](1), values: new uint256[](1), proposalBytecodes: new bytes[](1), desc: "ipfs link to grant details"});
    // daoVoteGrantImplant.prop memory proposal = voteGrant.proposals(grantId);
     daoVoteGrantImplant.prop memory proposal = voteGrant.getProp(grantId);
-
+ // Check if the proposal was successful
+    assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Succeeded);
+    mockDao.getVotes(grantId);
+    mockDao.getSupportVotes(grantId);
+    mockDao.voteSucceeded(grantId);
+    mockDao.quorumReached(grantId);
+   // mockDao.queue(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+    skip(86400);
     mockDao.execute(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
 
   }

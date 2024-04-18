@@ -16,11 +16,12 @@ pragma solidity ^0.8.19;
 import "safe-contracts/base/GuardManager.sol";
 import "./libs/auth.sol";
 import "forge-std/console.sol";
+import "./interfaces/IERC4824.sol";
 
 /**
  * @title      BorgCore
  **/
-contract borgCore is BaseGuard, GlobalACL {
+contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     enum ParamType { UINT, ADDRESS, STRING, BYTES, BOOL, INT }
 
     struct ParamConstraint {
@@ -58,6 +59,13 @@ contract borgCore is BaseGuard, GlobalACL {
     uint256 public nativeCooldown = 0;
     uint256 public lastNativeExecutionTimestamp = 0;
 
+    /// Identifiers
+    string public id = "unnamed-borg-core";
+    string private _daoUri;
+    string[] public legalAgreements;
+    string public constant VERSION = "0.0.1";
+    uint256 public immutable borgType;
+
     /// Whitelist Mappings
     mapping(address => Recipient) public whitelistedRecipients;
 
@@ -73,6 +81,10 @@ contract borgCore is BaseGuard, GlobalACL {
     event ContractRemoved(address indexed contractAddress);
     event ParameterConstraintAdded(address indexed contractAddress, string methodName, uint8 paramIndex, ParamType paramType, uint256 minValue, uint256 maxValue, bytes exactMatch, uint256 byteOffset, uint256 byteLength);
     event ParameterConstraintRemoved(address indexed contractAddress, string methodName, uint8 paramIndex);
+    event DaoUriUpdated(string newDaoUri);
+    event LegalAgreementAdded(string agreement);
+    event LegalAgreementRemoved(string agreement);
+    event IdentifierUpdated(string newId);
 
     /// Errors
     error BORG_CORE_InvalidRecipient();
@@ -86,7 +98,8 @@ contract borgCore is BaseGuard, GlobalACL {
 
     /// Constructor
     /// @param _auth Address, ideally an oversight multisig or other safeguard.
-    constructor(Auth _auth) GlobalACL(_auth) {
+    constructor(Auth _auth, uint256 _borgType) GlobalACL(_auth) {
+        borgType = _borgType;
     }
 
     /// checkTransaction
@@ -234,6 +247,37 @@ contract borgCore is BaseGuard, GlobalACL {
     function clearPolicy(address _contract) public onlyOwner {
         policy[_contract].allowed = false;
         policy[_contract].fullAccess = false;
+    }
+
+    // Add identifier string
+    function setIdentifier(string memory _id) public onlyAdmin {
+        id = _id;
+        emit IdentifierUpdated(_id);
+    }
+
+    // Add legal agreement
+    function addLegalAgreement(string memory _agreement) public onlyAdmin {
+        legalAgreements.push(_agreement);
+        emit LegalAgreementAdded(_agreement);
+    }
+
+    //remove legal agreement
+    function removeLegalAgreement(uint256 _index) public onlyAdmin {
+        require(_index < legalAgreements.length, "Index out of bounds");
+        string memory _removedAgreement = legalAgreements[_index];
+        legalAgreements[_index] = legalAgreements[legalAgreements.length - 1];
+        legalAgreements.pop();
+        emit LegalAgreementRemoved(_removedAgreement);
+    }
+
+    
+    function daoURI() public view override returns (string memory) {
+        return _daoUri;
+    }
+
+    function setDaoURI(string memory newDaoUri) public onlyAdmin {
+        _daoUri = newDaoUri;
+        emit DaoUriUpdated(newDaoUri);
     }
 
     // Function to add a parameter constraint for uint256 with range

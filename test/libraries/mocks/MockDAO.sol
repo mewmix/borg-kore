@@ -30,16 +30,16 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description,
-        uint256 quorum,
-        uint256 threshold,
-        uint256 length
+        uint256 _quorum,
+        uint256 _threshold,
+        uint256 _length
     ) public onlyAdmin returns (uint256) {
-        lastLength = length;
+        lastLength = _length;
         uint256 proposalId = propose(targets, values, calldatas, description);
         proposalThresholds[proposalId] = ProposalThresholds({
-            quorum: quorum,
-            threshold: threshold,
-            length: length
+            quorum: _quorum,
+            threshold: _threshold,
+            length: _length
         });
         return proposalId;
     }
@@ -63,6 +63,23 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
         return getSupportVotes(proposalId) >= votesRequired;
     }
 
+    function _countVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        uint256 weight,
+        bytes memory params
+    ) internal override(Governor, GovernorCountingSimple) {
+        ProposalVote storage proposal = _proposalVotes[proposalId];
+        if (support == 0) {
+            proposal.againstVotes += weight;
+        } else if (support == 1) {
+            proposal.forVotes += weight;
+        } else if (support == 2) {
+            proposal.abstainVotes += weight;
+        }
+    }
+
     function getVotes(uint256 proposalId) public view returns (uint256) {
         ProposalVote storage proposal = _proposalVotes[proposalId];
         return proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
@@ -73,8 +90,14 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
         return proposal.forVotes;
     }
 
-    function clock() public view override(Governor, GovernorVotes) returns (uint48) {
-        return uint48(block.number-1);
+    function quorumReached(uint256 proposalId) public view returns (bool) {
+        return proposalThresholds[proposalId].quorum <= getVotes(proposalId);
+    }
+
+    function voteSucceeded(uint256 proposalId) public view returns (bool) {
+        uint256 totalVotes = getSupportVotes(proposalId);
+        uint256 votesRequired = (totalVotes * proposalThresholds[proposalId].threshold) / 100;
+        return getSupportVotes(proposalId) >= votesRequired;
     }
 
 

@@ -20,11 +20,13 @@ contract ProjectTest is Test {
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
 
   // Set&pull our addresses for the tests. This is set for forked Arbitrum mainnet
-  address MULTISIG = 0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
-  address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //change this to the owner of the Safe (needs matching pk in the .env)
-  address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f;
-  address usdc_addr = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
-  address dai_addr = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
+  address MULTISIG = 0x3e7C6446F6724a3260c6AD7d17C3857FdeB586BB;//0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
+  address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //owner of the safe protaganist
+  address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f; //"junior" antagonist
+  address vip = 0xC2ab7443999c32498e7B0295335025e549515025; //vip address that has a lot of voting power in the test governance token
+  address usdc_addr = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;//0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
+  address dai_addr = 0x3e622317f8C93f7328350cF0B56d9eD4C620C5d6;//0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
+  address arb_addr = 0x912CE59144191C1204E64559FE8253a0e49E6548; //arb token
   address dao = address(0xDA0);
 
   // Adding some tokens for the test
@@ -42,7 +44,7 @@ contract ProjectTest is Test {
     vm.prank(dao);
     auth = new Auth();
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth);
+    core = new borgCore(auth, 0x1);
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
 

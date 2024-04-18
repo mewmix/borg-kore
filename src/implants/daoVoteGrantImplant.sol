@@ -15,9 +15,9 @@ contract daoVoteGrantImplant is GlobalACL, ConditionManager { //is baseImplant
     address public governanceExecutor;
     MetaVesT public metaVesT;
     MetaVesTController public metaVesTController;
-    uint256 public duration = 604800; //7 days
-    uint256 public quorum = 1000; //10%
-    uint256 public threshold = 4000; //40%
+    uint256 public duration = 0; //7 days
+    uint256 public quorum = 10; //10%
+    uint256 public threshold = 40; //40%
 
     struct prop {
         address[] targets;
@@ -90,9 +90,12 @@ contract daoVoteGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         values[0] = 0;
         bytes[] memory proposalBytecodes = new bytes[](1);
         proposalBytecodes[0] = proposalBytecode;
-        proposals[proposalId] = prop(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+
         if(governanceAdapter != address(0))
+        {
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, proposalBytecodes, _desc, quorum, threshold, duration);
+             proposals[proposalId] = prop(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+        }
        
     }
 
@@ -114,9 +117,12 @@ contract daoVoteGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         values[0] = 0;
         bytes[] memory proposalBytecodes = new bytes[](1);
         proposalBytecodes[0] = proposalBytecode;
-        proposals[proposalId] = prop(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+      
         if(governanceAdapter != address(0))
+        {
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, proposalBytecodes, _desc, quorum, threshold, duration);
+            proposals[proposalId] = prop(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+        }
     }
 
     function proposeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails, string memory _desc) external returns (uint256 proposalId) {
@@ -145,9 +151,13 @@ contract daoVoteGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         values[0] = 0;
         bytes[] memory proposalBytecodes = new bytes[](1);
         proposalBytecodes[0] = proposalBytecode;
-        proposals[proposalId] = prop(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+      
         if(governanceAdapter != address(0))
+        {
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, proposalBytecodes, _desc, quorum, threshold, duration);
+              proposals[proposalId] = prop(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+            
+        }
     }
 
     function executeDirectGrant(address _token, address _recipient, uint256 _amount) external {
