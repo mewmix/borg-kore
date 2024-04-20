@@ -36,7 +36,7 @@ contract ProjectTest is Test {
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
 
   // Set&pull our addresses for the tests. This is set for forked Arbitrum mainnet
-  address MULTISIG = 0x3e7C6446F6724a3260c6AD7d17C3857FdeB586BB;//0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
+  address MULTISIG = 0x586410eFD34d1f9548434a08bDc411A56FD0EA40;//0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
   address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //owner of the safe protaganist
   address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f; //"junior" antagonist
   address vip = 0xC2ab7443999c32498e7B0295335025e549515025; //vip address that has a lot of voting power in the test governance token
@@ -77,7 +77,8 @@ contract ProjectTest is Test {
     //set up a mock DAO Governance contract
     govToken = new MockERC20Votes("GovToken", "GT");
     mockDao = new MockDAO(govToken, auth);
-    deal(address(govToken), address(this), 1e29);
+    assertTrue(govToken.balanceOf(address(this)) == 1e30);
+    //deal(address(govToken), address(this), 1e29);
     govToken.delegate(address(this));
 
     //set up the governance adapter for our Implants
@@ -263,7 +264,7 @@ contract ProjectTest is Test {
    // uint256 newTimestamp = startTimestamp + 100; // 101
    // vm.warp(newTimestamp);
     skip(1000);
-    assertTrue(govToken.balanceOf(address(this)) > 0);
+    assertTrue(govToken.balanceOf(address(this)) == 1e30);
     assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Active);
     mockDao.castVote(grantId, 1);
     skip(86400);
