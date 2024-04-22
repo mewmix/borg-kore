@@ -15,7 +15,6 @@ pragma solidity ^0.8.19;
 
 import "safe-contracts/base/GuardManager.sol";
 import "./libs/auth.sol";
-import "forge-std/console.sol";
 import "./interfaces/IERC4824.sol";
 
 /**
