@@ -9,7 +9,7 @@ import "metavest/MetaVesTController.sol";
 contract optimisticGrantImplant is GlobalACL { //is baseImplant
 
     address public immutable BORG_SAFE;
-
+    uint256 public immutable IMPLANT_ID = 2;
     uint256 public grantCountLimit;
     uint256 public currentGrantCount;
     uint256 public grantTimeLimit;

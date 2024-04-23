@@ -11,6 +11,7 @@ import "../interfaces/IGovernanceAdapter.sol";
 contract daoVoteGrantImplant is GlobalACL, ConditionManager { //is baseImplant
 
     address public immutable BORG_SAFE;
+    uint256 public immutable IMPLANT_ID = 4;
     address public governanceAdapter;
     address public governanceExecutor;
     MetaVesT public metaVesT;

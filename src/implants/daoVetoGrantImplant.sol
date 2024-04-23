@@ -11,6 +11,7 @@ import "../libs/conditions/conditionManager.sol";
 contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
 
     address public immutable BORG_SAFE;
+    uint256 public immutable IMPLANT_ID = 3;
     address public immutable governanceToken;
     uint256 public objectionsThreshold;
     uint256 public lastMotionId;
@@ -21,6 +22,7 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
     uint256 public duration = 3; //3 days
     uint256 public quorum = 3; //3%
     uint256 public threshold = 25; //25%
+    uint256 public cooldown = 0;
 
     struct Proposal {
         uint256 id;

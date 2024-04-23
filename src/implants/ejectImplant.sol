@@ -11,6 +11,7 @@ contract ejectImplant is
 {
     ISafe internal immutable gnosisSafe;
     address public immutable BORG_SAFE;
+    uint256 public immutable IMPLANT_ID = 1;
     address public immutable FAIL_SAFE;
 
     error ejectImplant_ConditionsNotMet();

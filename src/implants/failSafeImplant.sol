@@ -11,6 +11,7 @@ import "forge-std/interfaces/IERC20.sol";
 contract failSafeImplant is GlobalACL, ConditionManager { //is baseImplant
 
     address public immutable BORG_SAFE;
+    uint256 public immutable IMPLANT_ID = 0;
     address public immutable RECOVERY_ADDRESS;
 
     error failSafeImplant_NotAuthorized();
@@ -63,7 +64,6 @@ contract failSafeImplant is GlobalACL, ConditionManager { //is baseImplant
                 bool success = gnosisSafe.execTransactionFromModule(tokenList[i].tokenAddress, 0, data, Enum.Operation.Call);
                 require(success, "Failed to execute transfer from Safe");
             }
-           
         }
     }
 
