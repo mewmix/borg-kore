@@ -6,11 +6,11 @@ import "../libs/auth.sol";
 import "forge-std/interfaces/IERC20.sol";
 import "../interfaces/IGovernanceAdapter.sol";
 import "metavest/MetaVesTController.sol";
-import "../libs/conditions/conditionManager.sol";
+import "./baseImplant.sol";
 
-contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
 
-    address public immutable BORG_SAFE;
+contract daoVetoGrantImplant is BaseImplant { //is baseImplant
+
     uint256 public immutable IMPLANT_ID = 3;
     address public immutable governanceToken;
     uint256 public objectionsThreshold;
@@ -23,6 +23,7 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
     uint256 public quorum = 3; //3%
     uint256 public threshold = 25; //25%
     uint256 public cooldown = 0;
+    bool public requireBorgVote = true;
 
     struct Proposal {
         uint256 id;
@@ -59,8 +60,7 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
     mapping(uint256 => uint256) internal proposalIndicesByProposalId;
     uint256 internal constant PERC_SCALE = 10000;
 
-    constructor(Auth _auth, address _borgSafe, address _governanceToken, uint256 _duration, uint256 _objectionsThreshold, address _governanceAdapter) ConditionManager(_auth) {
-        BORG_SAFE = _borgSafe;
+    constructor(Auth _auth, address _borgSafe, address _governanceToken, uint256 _duration, uint256 _objectionsThreshold, address _governanceAdapter) BaseImplant(_auth, _borgSafe) {
         governanceToken = _governanceToken;
         duration = _duration;
         objectionsThreshold = _objectionsThreshold;
@@ -102,6 +102,10 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
             }
         }
         return false;
+    }
+
+    function toggleBorgVote(bool _requireBorgVote) external onlyOwner {
+        requireBorgVote = _requireBorgVote;
     }
 
     function createProposal(address _token, address _recipient, uint256 _amount, address _votingAuthority) external 
@@ -171,11 +175,14 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
 
-        if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-            revert daoVetoGrantImplant_CallerNotBORGMember();
-
-        //if(BORG_SAFE != msg.sender)
-        //    revert daoVetoGrantImplant_CallerNotBORG();
+        if(requireBorgVote) {
+            if(BORG_SAFE != msg.sender)
+                revert daoVetoGrantImplant_CallerNotBORG();
+        }
+        else {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert daoVetoGrantImplant_CallerNotBORGMember();
+         }
 
         bytes memory proposalBytecode = abi.encodeWithSignature("executeDirectGrant(address,address,uint256)", _token, _recipient, _amount);
        
@@ -207,11 +214,14 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
 
-        if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-            revert daoVetoGrantImplant_CallerNotBORGMember();
-
-        //if(BORG_SAFE != msg.sender)
-        //    revert daoVetoGrantImplant_CallerNotBORG();
+        if(requireBorgVote) {
+            if(BORG_SAFE != msg.sender)
+                revert daoVetoGrantImplant_CallerNotBORG();
+        }
+        else {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert daoVetoGrantImplant_CallerNotBORGMember();
+         }
 
         bytes memory proposalBytecode = abi.encodeWithSignature("executeSimpleGrant(address,address,uint256)", _token, _recipient, _amount);
      
@@ -250,11 +260,14 @@ contract daoVetoGrantImplant is GlobalACL, ConditionManager { //is baseImplant
         if(IERC20(_metaVestDetails.allocation.tokenContract).balanceOf(address(BORG_SAFE)) < _total)
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
 
-        if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-            revert daoVetoGrantImplant_CallerNotBORGMember();
-
-        //if(BORG_SAFE != msg.sender)
-        //    revert daoVetoGrantImplant_CallerNotBORG();
+        if(requireBorgVote) {
+            if(BORG_SAFE != msg.sender)
+                revert daoVetoGrantImplant_CallerNotBORG();
+        }
+        else {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert daoVetoGrantImplant_CallerNotBORGMember();
+         }
 
         bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(MetaVesT.MetaVesTDetails)", _metaVestDetails);
 

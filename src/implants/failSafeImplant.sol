@@ -7,10 +7,10 @@ import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
 import "../libs/conditions/conditionManager.sol";
 import "forge-std/interfaces/IERC20.sol";
+import "./baseImplant.sol";
 
-contract failSafeImplant is GlobalACL, ConditionManager { //is baseImplant
+contract failSafeImplant is BaseImplant { //is baseImplant
 
-    address public immutable BORG_SAFE;
     uint256 public immutable IMPLANT_ID = 0;
     address public immutable RECOVERY_ADDRESS;
 
@@ -25,8 +25,7 @@ contract failSafeImplant is GlobalACL, ConditionManager { //is baseImplant
 
     TokenInfo[] public tokenList;
 
-    constructor(Auth _auth, address _borgSafe, address _recoveryAddress) ConditionManager(_auth) {
-        BORG_SAFE = _borgSafe;
+    constructor(Auth _auth, address _borgSafe, address _recoveryAddress) BaseImplant(_auth, _borgSafe) {
         RECOVERY_ADDRESS = _recoveryAddress;
     }
 

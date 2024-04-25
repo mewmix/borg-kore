@@ -3,19 +3,18 @@ pragma solidity ^0.8.19;
 
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
-import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
+import "./baseImplant.sol";
 
-contract optimisticGrantImplant is GlobalACL { //is baseImplant
+contract optimisticGrantImplant is BaseImplant { //is baseImplant
 
-    address public immutable BORG_SAFE;
     uint256 public immutable IMPLANT_ID = 2;
     uint256 public grantCountLimit;
     uint256 public currentGrantCount;
     uint256 public grantTimeLimit;
     MetaVesT public metaVesT;
     MetaVesTController public metaVesTController;
-    bool allowOwners;
+    bool public requireBorgVote = true;
 
     struct approvedGrantToken { 
         uint256 spendingLimit;
@@ -23,8 +22,6 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
         uint256 amountSpent;
     }
 
-    //automatic refresh let's make this a option //auto refresh
-    //stop 
     
     error optimisticGrantImplant_invalidToken();
     error optimisticGrantImplant_GrantCountLimitReached();
@@ -35,9 +32,7 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
 
     mapping(address => approvedGrantToken) public approvedGrantTokens;
 
-    constructor(Auth _auth, address _borgSafe, address _metaVest, address _metaVestController) GlobalACL(_auth) {
-        BORG_SAFE = _borgSafe;
-        allowOwners = false;
+    constructor(Auth _auth, address _borgSafe, address _metaVest, address _metaVestController) BaseImplant(_auth, _borgSafe) {
         metaVesT = MetaVesT(_metaVest);
         metaVesTController = MetaVesTController(_metaVestController);
     }
@@ -56,8 +51,8 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
         currentGrantCount = 0;
     }
 
-    function toggleAllowOwners(bool _allowOwners) external onlyOwner {
-        allowOwners = _allowOwners;
+    function toggleBorgVote(bool _requireBorgVote) external onlyOwner {
+        requireBorgVote = _requireBorgVote;
     }
 
     function createGrant(address _token, address _recipient, uint256 _amount) external {
@@ -66,13 +61,13 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
         if(block.timestamp >= grantTimeLimit)
             revert optimisticGrantImplant_GrantTimeLimitReached();
         
-        if(allowOwners) {
-            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-                revert optimisticGrantImplant_CallerNotBORGMember();
-        }
-        else {
+        if(requireBorgVote) {
             if(BORG_SAFE != msg.sender)
                 revert optimisticGrantImplant_CallerNotBORG();
+        }
+        else {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert optimisticGrantImplant_CallerNotBORGMember();
          }
 
         approvedGrantToken storage approvedToken = approvedGrantTokens[_token];
@@ -96,13 +91,13 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
         if(block.timestamp >= grantTimeLimit)
             revert optimisticGrantImplant_GrantTimeLimitReached();
 
-        if(allowOwners) {
-            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-                revert optimisticGrantImplant_CallerNotBORGMember();
-        }
-        else {
+         if(requireBorgVote) {
             if(BORG_SAFE != msg.sender)
                 revert optimisticGrantImplant_CallerNotBORG();
+        }
+        else {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert optimisticGrantImplant_CallerNotBORGMember();
          }
 
         //Configure the metavest details
@@ -126,13 +121,13 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
         if(block.timestamp >= grantTimeLimit)
             revert optimisticGrantImplant_GrantTimeLimitReached();
 
-        if(allowOwners) {
-            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-                revert optimisticGrantImplant_CallerNotBORGMember();
-        }
-        else {
+        if(requireBorgVote) {
             if(BORG_SAFE != msg.sender)
                 revert optimisticGrantImplant_CallerNotBORG();
+        }
+        else {
+            if(!ISafe(BORG_SAFE).isOwner(msg.sender))
+                revert optimisticGrantImplant_CallerNotBORGMember();
          }
 
          //cycle through any allocations and approve the metavest to spend the amount
@@ -154,6 +149,4 @@ contract optimisticGrantImplant is GlobalACL { //is baseImplant
         ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
         metaVesTController.createMetavestAndLockTokens(_metaVestDetails);
     }
-
-
 }

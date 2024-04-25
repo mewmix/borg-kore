@@ -155,7 +155,7 @@ contract ProjectTest is Test {
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(dao);
-    opGrant.toggleAllowOwners(true); 
+    opGrant.toggleBorgVote(false);
 
     vm.prank(owner);
     opGrant.createGrant(dai_addr, address(jr), 2 ether);
@@ -256,9 +256,12 @@ contract ProjectTest is Test {
 
   function testSimpleVoteGrant() public
   {
-    vm.prank(owner);
+    
     uint256 startTimestamp = block.timestamp;
   
+    vm.prank(dao);
+    voteGrant.toggleBorgVote(false);
+    vm.prank(owner);
     uint256 grantId = voteGrant.proposeDirectGrant(dai_addr, address(jr), 1000 ether, "ipfs link to grant details");
     //warp ahead 100 blocks
    // uint256 newTimestamp = startTimestamp + 100; // 101
@@ -271,7 +274,7 @@ contract ProjectTest is Test {
     //create a new prop struct from daoVoteGrantImplant
    // daoVoteGrantImplant.prop memory proposal = daoVoteGrantImplant.prop({targets: new address[](1), values: new uint256[](1), proposalBytecodes: new bytes[](1), desc: "ipfs link to grant details"});
    // daoVoteGrantImplant.prop memory proposal = voteGrant.proposals(grantId);
-    daoVoteGrantImplant.prop memory proposal = voteGrant.getProp(grantId);
+    daoVoteGrantImplant.proposalDetail memory proposal = voteGrant.getProposalDetails(grantId);
  // Check if the proposal was successful
     assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Succeeded);
     mockDao.getVotes(grantId);

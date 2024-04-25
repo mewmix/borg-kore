@@ -4,13 +4,9 @@ pragma solidity ^0.8.19;
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
 import "../libs/conditions/conditionManager.sol";
+import "./baseImplant.sol";
 
-contract ejectImplant is
-    GlobalACL,
-    ConditionManager //is baseImplant
-{
-    ISafe internal immutable gnosisSafe;
-    address public immutable BORG_SAFE;
+contract ejectImplant is BaseImplant {
     uint256 public immutable IMPLANT_ID = 1;
     address public immutable FAIL_SAFE;
 
@@ -19,20 +15,18 @@ contract ejectImplant is
 
     /// @param _auth initialize authorization parameters for this contract, including applicable conditions
     /// @param _borgSafe address of the applicable BORG's Gnosis Safe which is adding this ejectImplant
-    constructor(Auth _auth, address _borgSafe, address _failSafe) ConditionManager(_auth) {
-        BORG_SAFE = _borgSafe;
-        gnosisSafe = ISafe(_borgSafe);
+    constructor(Auth _auth, address _borgSafe, address _failSafe) BaseImplant(_auth, _borgSafe) {
         FAIL_SAFE = _failSafe;
     }
 
-    /// @notice for an 'owner' to eject an 'owner' from the 'gnosisSafe'
-    /// @param owner address of the 'owner' to be ejected from the 'gnosisSafe'
+    /// @notice for an 'owner' to eject an 'owner' from the Safe
+    /// @param owner address of the 'owner' to be ejected from the Safe
     function ejectOwner(address owner) external onlyOwner {
         // require(msg.sender == authorizedCaller, "Caller is not authorized");
-        if (!gnosisSafe.isOwner(owner)) revert ejectImplant_NotOwner();
+        if (!ISafe(BORG_SAFE).isOwner(owner)) revert ejectImplant_NotOwner();
         if (!checkConditions()) revert ejectImplant_ConditionsNotMet();
 
-        address[] memory owners = gnosisSafe.getOwners();
+        address[] memory owners = ISafe(BORG_SAFE).getOwners();
         address prevOwner = address(0x1);
         for (uint256 i = owners.length - 1; i >= 0; i--) {
             if (owners[i] == owner) {
@@ -47,8 +41,8 @@ contract ejectImplant is
             owner,
             1
         );
-        gnosisSafe.execTransactionFromModule(
-            address(gnosisSafe),
+        ISafe(BORG_SAFE).execTransactionFromModule(
+            BORG_SAFE,
             0,
             data,
             Enum.Operation.Call
@@ -57,9 +51,9 @@ contract ejectImplant is
 
     /// @notice for a msg.sender 'owner' to self-eject from the BORG
     function selfEject() public conditionCheck {
-        if (!gnosisSafe.isOwner(msg.sender)) revert ejectImplant_NotOwner();
+        if (!ISafe(BORG_SAFE).isOwner(msg.sender)) revert ejectImplant_NotOwner();
 
-        address[] memory owners = gnosisSafe.getOwners();
+        address[] memory owners = ISafe(BORG_SAFE).getOwners();
         address prevOwner = address(0x1);
         for (uint256 i = owners.length - 1; i >= 0; i--) {
             if (owners[i] == msg.sender) {
@@ -74,8 +68,8 @@ contract ejectImplant is
             msg.sender,
             1
         );
-        gnosisSafe.execTransactionFromModule(
-            address(gnosisSafe),
+        ISafe(BORG_SAFE).execTransactionFromModule(
+            address(BORG_SAFE),
             0,
             data,
             Enum.Operation.Call
