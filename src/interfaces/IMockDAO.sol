@@ -21,6 +21,10 @@ interface IMockDAO is IGovernor {
 
     function getSupportVotes(uint256 proposalId) external view returns (uint256);
 
+    function getAgainstVotes(uint256 proposalId) external view returns (uint256);
+
+    function getAbstainVotes(uint256 proposalId) external view returns (uint256);
+
     // Functions to get the governance parameters
     function quorum(uint256 blockNumber) external view returns (uint256);
 

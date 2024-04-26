@@ -30,4 +30,12 @@ contract FlexGovernanceAdapter is BaseGovernanceAdapter {
         return IMockDAO(governorContract).castVote(proposalId, support);
     }
 
+    function getVotes(uint256 proposalId) public override returns(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) {
+        forVotes = IMockDAO(governorContract).getSupportVotes(proposalId);
+        againstVotes = IMockDAO(governorContract).getAgainstVotes(proposalId);
+        abstainVotes = IMockDAO(governorContract).getAbstainVotes(proposalId);
+        return (forVotes, againstVotes, abstainVotes);
+    }
+
+
 }

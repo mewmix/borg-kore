@@ -90,6 +90,16 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
         return proposal.forVotes;
     }
 
+    function getAgainstVotes(uint256 proposalId) public view returns (uint256) {
+        ProposalVote storage proposal = _proposalVotes[proposalId];
+        return proposal.againstVotes;
+    }
+
+    function getAbstainVotes(uint256 proposalId) public view returns (uint256) {
+        ProposalVote storage proposal = _proposalVotes[proposalId];
+        return proposal.abstainVotes;
+    }
+
     function quorumReached(uint256 proposalId) public view returns (bool) {
         return proposalThresholds[proposalId].quorum <= getVotes(proposalId);
     }

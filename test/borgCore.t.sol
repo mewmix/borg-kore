@@ -39,8 +39,8 @@ contract ProjectTest is Test {
   /// 3. Allow the safe as a contract on the core
   /// 4. Set balances for tests
   function setUp() public {
-    ERC20 usdc = ERC20(usdc_addr);
-    ERC20 dai = ERC20(dai_addr);
+    usdc = ERC20(usdc_addr);
+    dai = ERC20(dai_addr);
     vm.prank(dao);
     auth = new Auth();
     safe = IGnosisSafe(MULTISIG);

@@ -63,8 +63,8 @@ contract ProjectTest is Test {
   /// 4. Inject the implants into the safe
   /// 5. Set balances for tests
   function setUp() public {
-    ERC20 usdc = ERC20(usdc_addr);
-    ERC20 dai = ERC20(dai_addr);
+     usdc = ERC20(usdc_addr);
+     dai = ERC20(dai_addr);
     //ERC20 arb = ERC20(arb_addr);
     deal(dao, 2 ether);
     
@@ -94,7 +94,8 @@ contract ProjectTest is Test {
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
     opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesT), address(metaVesTController));
-    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, address(govToken), 259200, 1, address(0));
+    //constructor(Auth _auth, address _borgSafe, uint256 _duration, uint _quorum, uint256 _threshold, uint _waitingPeriod, address _governanceAdapter, address _governanceExecutor, address _metaVesT, address _metaVesTController)
+    vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, 600, 5, 10, 600, address(governanceAdapter), address(mockDao), address(metaVesT), address(metaVesTController));
     voteGrant = new daoVoteGrantImplant(auth, MULTISIG, 0, 10, 40, address(governanceAdapter), address(mockDao), address(metaVesT), address(metaVesTController));
     vm.prank(dao);
     auth.updateRole(address(voteGrant), 98);

@@ -5,6 +5,7 @@ import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
 import "../libs/conditions/conditionManager.sol";
 import "./baseImplant.sol";
+import "../interfaces/IBaseImplant.sol";
 
 contract ejectImplant is BaseImplant {
     uint256 public immutable IMPLANT_ID = 1;
@@ -12,18 +13,20 @@ contract ejectImplant is BaseImplant {
 
     error ejectImplant_ConditionsNotMet();
     error ejectImplant_NotOwner();
+    error ejectImplant_InvalidFailSafeImplant();
 
     /// @param _auth initialize authorization parameters for this contract, including applicable conditions
     /// @param _borgSafe address of the applicable BORG's Gnosis Safe which is adding this ejectImplant
     constructor(Auth _auth, address _borgSafe, address _failSafe) BaseImplant(_auth, _borgSafe) {
+        if (IBaseImplant(_failSafe).IMPLANT_ID() != 0)
+            revert ejectImplant_InvalidFailSafeImplant();
         FAIL_SAFE = _failSafe;
     }
 
     /// @notice for an 'owner' to eject an 'owner' from the Safe
     /// @param owner address of the 'owner' to be ejected from the Safe
     function ejectOwner(address owner) external onlyOwner {
-        // require(msg.sender == authorizedCaller, "Caller is not authorized");
-        if (!ISafe(BORG_SAFE).isOwner(owner)) revert ejectImplant_NotOwner();
+
         if (!checkConditions()) revert ejectImplant_ConditionsNotMet();
 
         address[] memory owners = ISafe(BORG_SAFE).getOwners();

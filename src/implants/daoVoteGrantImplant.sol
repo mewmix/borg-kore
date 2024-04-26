@@ -28,12 +28,6 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
         bytes32 desc;
     }
 
-    struct approvedGrantToken { 
-        address token;
-        uint256 spendingLimit;
-        uint256 amountSpent;
-    }
-
     mapping(uint256 => proposalDetail) public proposalDetails;
 
     error daoVoteGrantImplant_NotAuthorized();
@@ -86,7 +80,7 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             if(BORG_SAFE != msg.sender)
                 revert daoVoteGrantImplant_CallerNotBORG();
         }
-        else {
+        else if(BORG_SAFE != msg.sender) {
             if(!ISafe(BORG_SAFE).isOwner(msg.sender))
                 revert daoVoteGrantImplant_CallerNotBORGMember();
          }
@@ -116,7 +110,7 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             if(BORG_SAFE != msg.sender)
                 revert daoVoteGrantImplant_CallerNotBORG();
         }
-        else {
+        else if(BORG_SAFE != msg.sender) {
             if(!ISafe(BORG_SAFE).isOwner(msg.sender))
                 revert daoVoteGrantImplant_CallerNotBORGMember();
          }
@@ -153,7 +147,7 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             if(BORG_SAFE != msg.sender)
                 revert daoVoteGrantImplant_CallerNotBORG();
         }
-        else {
+        else if(BORG_SAFE != msg.sender) {
             if(!ISafe(BORG_SAFE).isOwner(msg.sender))
                 revert daoVoteGrantImplant_CallerNotBORGMember();
          }

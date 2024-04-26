@@ -67,7 +67,6 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
 
     /// Whitelist Mappings
     mapping(address => Recipient) public whitelistedRecipients;
-
     mapping(address => PolicyItem) public policy;
 
     /// Events
