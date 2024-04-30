@@ -84,7 +84,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
             ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
     }
 
-    function createDirectGrant(address _token, address _recipient, uint256 amount) external {
+    function createDirectGrant(address _token, address _recipient, uint256 _amount) external {
 
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
@@ -101,17 +101,36 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
          }
 
         //Configure the metavest details
-        MetaVesT.MetaVesTDetails memory metaVesTDetails;
-        metaVesTDetails.metavestType = MetaVesT.MetaVesTType.ALLOCATION;
-        metaVesTDetails.grantee = _recipient;
-        metaVesTDetails.transferable = false;
-        MetaVesT.Allocation memory allocation;
-        allocation.cliffCredit = amount;
-        allocation.startTime = 0;
-        metaVesTDetails.allocation = allocation;
+        MetaVesT.Milestone[] memory emptyMilestones;
+        MetaVesT.MetaVesTDetails memory _metavestDetails = MetaVesT.MetaVesTDetails({
+            metavestType: MetaVesT.MetaVesTType.ALLOCATION,
+            allocation: MetaVesT.Allocation({
+                tokenStreamTotal: _amount,
+                tokenGoverningPower: 0,
+                tokensVested: 0,
+                tokensUnlocked: 0,
+                vestedTokensWithdrawn: 0,
+                unlockedTokensWithdrawn: 0,
+                vestingCliffCredit: uint128(_amount),
+                unlockingCliffCredit: uint128(_amount),
+                vestingRate: 0,
+                vestingStartTime: 0,
+                vestingStopTime: 0,
+                unlockRate: 0,
+                unlockStartTime: 0,
+                unlockStopTime: 0,
+                tokenContract: _token
+            }),
+            option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
+            rta: MetaVesT.RestrictedTokenAward({repurchasePrice: 0, tokensRepurchasable: 0, shortStopTime: uint48(0)}),
+            eligibleTokens: MetaVesT.GovEligibleTokens({nonwithdrawable: false, vested: true, unlocked: true}),
+            grantee: _recipient,
+            milestones: emptyMilestones,
+            transferable: false
+        });
         //approve metaVest to spend the amount
-        ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), amount), Enum.Operation.Call);
-        metaVesTController.createMetavestAndLockTokens(metaVesTDetails);
+        ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call);
+        metaVesTController.createMetavestAndLockTokens(_metavestDetails);
     }
 
      function createAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
@@ -136,7 +155,6 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
             _milestoneTotal += _metaVestDetails.milestones[i].milestoneAward;
         }
         uint256 _total = _metaVestDetails.allocation.tokenStreamTotal +
-            _metaVestDetails.allocation.cliffCredit +
             _milestoneTotal;
 
         approvedGrantToken storage approvedToken = approvedGrantTokens[_metaVestDetails.allocation.tokenContract];

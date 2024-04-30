@@ -31,13 +31,12 @@ contract ejectImplant is BaseImplant {
 
         address[] memory owners = ISafe(BORG_SAFE).getOwners();
         address prevOwner = address(0x1);
-        for (uint256 i = owners.length - 1; i >= 0; i--) {
+        for (uint256 i = 1; i <= owners.length-1; i++) {
             if (owners[i] == owner) {
-                prevOwner = owners[i + 1];
+                prevOwner = owners[i - 1];
                 break;
             }
         }
-        prevOwner = address(0x1);
         bytes memory data = abi.encodeWithSignature(
             "removeOwner(address,address,uint256)",
             prevOwner,
@@ -57,14 +56,14 @@ contract ejectImplant is BaseImplant {
         if (!ISafe(BORG_SAFE).isOwner(msg.sender)) revert ejectImplant_NotOwner();
 
         address[] memory owners = ISafe(BORG_SAFE).getOwners();
-        address prevOwner = address(0x1);
-        for (uint256 i = owners.length - 1; i >= 0; i--) {
+         address prevOwner = address(0x1);
+        for (uint256 i = 1; i <= owners.length-1; i++) {
             if (owners[i] == msg.sender) {
-                prevOwner = owners[i + 1];
+                prevOwner = owners[i - 1];
                 break;
             }
         }
-        prevOwner = address(0x1);
+
         bytes memory data = abi.encodeWithSignature(
             "removeOwner(address,address,uint256)",
             prevOwner,
@@ -78,5 +77,6 @@ contract ejectImplant is BaseImplant {
             Enum.Operation.Call
         );
     }
+
 }
 

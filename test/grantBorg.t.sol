@@ -15,7 +15,7 @@ import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
 
-contract ProjectTest is Test {
+contract GrantBorgTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;

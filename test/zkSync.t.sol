@@ -8,7 +8,7 @@ import "../src/libs/auth.sol";
 import "../src/implants/optimisticGrantImplant.sol";
 import "../src/implants/daoVetoGrantImplant.sol";
 
-contract ProjectTest is Test {
+contract zkSyncTest is Test {
   // global contract deploys for the tests
 
   borgCore core;

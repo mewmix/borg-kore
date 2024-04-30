@@ -137,7 +137,6 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             _milestoneTotal += _metaVestDetails.milestones[i].milestoneAward;
         }
         uint256 _total = _metaVestDetails.allocation.tokenStreamTotal +
-            _metaVestDetails.allocation.cliffCredit +
             _milestoneTotal;
 
         if(IERC20(_metaVestDetails.allocation.tokenContract).balanceOf(address(BORG_SAFE)) < _total)
@@ -192,20 +191,39 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
 
         //Configure the metavest details
-        MetaVesT.MetaVesTDetails memory metaVesTDetails;
-        metaVesTDetails.metavestType = MetaVesT.MetaVesTType.ALLOCATION;
-        metaVesTDetails.grantee = _recipient;
-        metaVesTDetails.transferable = false;
-        MetaVesT.Allocation memory allocation;
-        allocation.cliffCredit = _amount;
-        allocation.startTime = 0;
-        metaVesTDetails.allocation = allocation;
+        MetaVesT.Milestone[] memory emptyMilestones;
+        MetaVesT.MetaVesTDetails memory _metavestDetails = MetaVesT.MetaVesTDetails({
+            metavestType: MetaVesT.MetaVesTType.ALLOCATION,
+            allocation: MetaVesT.Allocation({
+                tokenStreamTotal: _amount,
+                tokenGoverningPower: 0,
+                tokensVested: 0,
+                tokensUnlocked: 0,
+                vestedTokensWithdrawn: 0,
+                unlockedTokensWithdrawn: 0,
+                vestingCliffCredit: uint128(_amount),
+                unlockingCliffCredit: uint128(_amount),
+                vestingRate: 0,
+                vestingStartTime: 0,
+                vestingStopTime: 0,
+                unlockRate: 0,
+                unlockStartTime: 0,
+                unlockStopTime: 0,
+                tokenContract: _token
+            }),
+            option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
+            rta: MetaVesT.RestrictedTokenAward({repurchasePrice: 0, tokensRepurchasable: 0, shortStopTime: uint48(0)}),
+            eligibleTokens: MetaVesT.GovEligibleTokens({nonwithdrawable: false, vested: true, unlocked: true}),
+            grantee: _recipient,
+            milestones: emptyMilestones,
+            transferable: false
+        });
         //approve metaVest to spend the amount
         ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call);
-        metaVesTController.createMetavestAndLockTokens(metaVesTDetails);
+        metaVesTController.createMetavestAndLockTokens(_metavestDetails);
     }
 
-     function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
+    function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
 
         if(governanceExecutor != msg.sender)
         revert daoVoteGrantImplant_CallerNotGovernance();
@@ -216,7 +234,6 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             _milestoneTotal += _metaVestDetails.milestones[i].milestoneAward;
         }
         uint256 _total = _metaVestDetails.allocation.tokenStreamTotal +
-            _metaVestDetails.allocation.cliffCredit +
             _milestoneTotal;
 
         ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);

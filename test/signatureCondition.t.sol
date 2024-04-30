@@ -12,7 +12,7 @@ import "../src/libs/conditions/balanceCondition.sol";
 import "../src/libs/conditions/signatureCondition.sol";
 
 
-contract ProjectTest is Test {
+contract SigConditionTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;

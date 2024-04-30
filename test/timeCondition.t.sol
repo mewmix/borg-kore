@@ -10,7 +10,7 @@ import "../src/libs/conditions/signatureCondition.sol";
 import "../src/libs/conditions/timeCondition.sol";
 
 
-contract ProjectTest is Test {
+contract TimeConditionTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;

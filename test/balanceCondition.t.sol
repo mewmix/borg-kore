@@ -13,7 +13,7 @@ import "forge-std/mocks/MockERC20.sol";
 import  "forge-std/StdCheats.sol";
 
 
-contract ProjectTest is Test {
+contract BalanceConditionTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;

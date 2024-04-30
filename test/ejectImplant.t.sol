@@ -2,23 +2,19 @@
 pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "../src/borgCore.sol";
-import "../src/implants/failSafeImplant.sol";
 import "../src/implants/ejectImplant.sol";
 import "solady/tokens/ERC20.sol";
 import "../src/libs/auth.sol";
-import "../src/implants/optimisticGrantImplant.sol";
-import "../src/implants/daoVetoGrantImplant.sol";
 import "./libraries/safe.t.sol";
+import "../src/implants/failSafeImplant.sol";
 
-contract PBVBorgTest is Test {
+contract EjectTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;
-  failSafeImplant failSafe;
   ejectImplant eject;
   Auth auth;
-  optimisticGrantImplant opGrant;
-  daoVetoGrantImplant vetoGrant;
+  failSafeImplant failSafe;
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
@@ -28,90 +24,83 @@ contract PBVBorgTest is Test {
   address owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; //owner of the safe protaganist
   address jr = 0xe31e00cb74deF9194D95F70ca938403064480A2f; //"junior" antagonist
   address vip = 0xC2ab7443999c32498e7B0295335025e549515025; //vip address that has a lot of voting power in the test governance token
+  address tester = 0x42069BaBe92462393FaFdc653A88F958B64EC9A3;
+  address tester2 = 0x362C117C919dEC312f58a11B866356c5DBF86687;
   address usdc_addr = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;//0xaf88d065e77c8cC2239327C5EDb3A432268e5831; //make sure this matches your chain
   address dai_addr = 0x3e622317f8C93f7328350cF0B56d9eD4C620C5d6;//0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //make sure this matches your chain
   address arb_addr = 0x912CE59144191C1204E64559FE8253a0e49E6548; //arb token
-
-
- // represents the DAO's On chain power address
   address dao = address(0xDA0);
 
   // Adding some tokens for the test
   ERC20 usdc;// = ERC20(usdc_addr);
   ERC20 dai;// = ERC20(dai_addr);
-  ERC20 arb;// = ERC20(arb);
 
   /// Set our initial state: (All other tests are in isolation but share this state)
   /// 1. Set up the safe
   /// 2. Set up the core with the safe as the owner
   /// 3. Allow the safe as a contract on the core
-  /// 4. Inject the implants into the safe
-  /// 5. Set balances for tests
+  /// 4. Set balances for tests
   function setUp() public {
     usdc = ERC20(usdc_addr);
     dai = ERC20(dai_addr);
-    arb = ERC20(arb_addr);
-    deal(dao, 2 ether);
-    
-    
     vm.prank(dao);
     auth = new Auth();
-
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1);
+    
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
 
-
-    //for test: give out some tokens
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
-    //deal(address(arb), vip, 1000000000 ether);
 
-    //sigers add jr, add the eject, optimistic grant, and veto grant implants.
     executeSingle(addOwner(address(jr)));
-    executeSingle(getAddModule(address(eject)));
+    executeSingle(getAddEjectModule(address(eject)));
 
-    //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
     core.addContract(address(core));
 
-
-    //Set the core as the guard for the safe
-    executeSingle(getSetGuardData(address(MULTISIG)));
-
-    //for test: give some tokens out
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
-    deal(address(dai), MULTISIG, 2 ether);
+   // assertEq(dai.balanceOf(MULTISIG), 1e30);
+     deal(address(dai), MULTISIG, 2 ether);
+   // deal(address(usdc), MULTISIG, 2 ether);
  
   }
-
-
 
   /// @dev Initial Check that the safe and owner are set correctly.
   function testOwner() public { 
   assertEq(safe.isOwner(owner), true);
   }
 
-   function testDAOEject() public {
-    vm.prank(dao);
-    eject.ejectOwner(address(jr));
-    assertEq(safe.isOwner(address(jr)), false);
-  }
-
+  //allow jr to remove himself from the safe
   function testSelfEject() public {
     vm.prank(jr);
     eject.selfEject();
     assertEq(safe.isOwner(address(jr)), false);
   }
 
+    //jr cannot use the ejectOwner method bc he doesn't have ACL in the contract, can only selfEject
     function testFailejectNotApproved() public {
     vm.prank(jr);
     eject.ejectOwner(jr);
     assertEq(safe.isOwner(address(jr)), true);
   }
 
+  function testEjection() public { 
+    vm.prank(dao);
+    eject.ejectOwner(tester2);
+    assertEq(safe.isOwner(address(tester2)), false);
+    vm.prank(dao);
+    eject.ejectOwner(jr);
+    assertEq(safe.isOwner(address(jr)), false);
+    vm.prank(dao);
+    eject.ejectOwner(tester);
+    assertEq(safe.isOwner(address(tester)), false);
+    vm.prank(dao);
+    eject.ejectOwner(owner);
+    assertEq(safe.isOwner(address(owner)), false);
+  }
 
     /* TEST METHODS */
     //This section needs refactoring (!!) but going for speed here..
@@ -129,6 +118,7 @@ contract PBVBorgTest is Test {
         setGuardFunctionSignature,
         address(core)
     );
+
 
     batch[0] = GnosisTransaction({to: address(safe), value: 0, data: guardData});
 
@@ -196,7 +186,7 @@ contract PBVBorgTest is Test {
         return txData;
     }
 
-    function getAddModule(address to) public view returns (GnosisTransaction memory) {
+    function getAddEjectModule(address to) public view returns (GnosisTransaction memory) {
         bytes4 addContractMethod = bytes4(
             keccak256("enableModule(address)")
         );
@@ -206,21 +196,6 @@ contract PBVBorgTest is Test {
             to
         );
         GnosisTransaction memory txData = GnosisTransaction({to: address(safe), value: 0, data: guardData}); 
-        return txData;
-    }
-
-    function getCreateGrant(address token, address rec, uint256 amount) public view returns (GnosisTransaction memory) {
-        bytes4 addContractMethod = bytes4(
-            keccak256("createGrant(address,address,uint256)")
-        );
-
-        bytes memory guardData = abi.encodeWithSelector(
-            addContractMethod,
-            token,
-            rec,
-            amount
-        );
-        GnosisTransaction memory txData = GnosisTransaction({to: address(opGrant), value: 0, data: guardData}); 
         return txData;
     }
 
@@ -252,13 +227,13 @@ contract PBVBorgTest is Test {
         return txData;
     }
 
-    function getAddRecepientGuardData(address to, address allow, uint256 amount) public view returns (GnosisTransaction memory) {
-        bytes4 addRecepientMethod = bytes4(
-            keccak256("addRecepient(address,uint256)")
+    function getaddRecipientGuardData(address to, address allow, uint256 amount) public view returns (GnosisTransaction memory) {
+        bytes4 addRecipientMethod = bytes4(
+            keccak256("addRecipient(address,uint256)")
         );
 
         bytes memory recData = abi.encodeWithSelector(
-            addRecepientMethod,
+            addRecipientMethod,
             address(allow),
             amount
         );
@@ -292,7 +267,7 @@ contract PBVBorgTest is Test {
         return txData;
     }
 
-      function getSignature(
+    function getSignature(
         address to,
         uint256 value,
         bytes memory data,
@@ -319,6 +294,37 @@ contract PBVBorgTest is Test {
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(deployerPrivateKey, keccak256(txHashData));
+        bytes memory signature = abi.encodePacked(r, s, v);
+        return signature;
+    }
+
+    function getSignatureExtra(
+        address to,
+        uint256 value,
+        bytes memory data,
+        uint8 operation,
+        uint256 safeTxGas,
+        uint256 baseGas,
+        uint256 gasPrice,
+        address gasToken,
+        address refundReceiver,
+        uint256 nonce
+    ) public view returns (bytes memory) {
+        bytes memory txHashData = safe.encodeTransactionData(
+            to,
+            value,
+            data,
+            operation,
+            safeTxGas,
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            nonce
+        );
+
+        uint256 deployerPrivateKeyExtra = vm.envUint("PRIVATE_KEY_EXTRA");
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(deployerPrivateKeyExtra, keccak256(txHashData));
         bytes memory signature = abi.encodePacked(r, s, v);
         return signature;
     }
