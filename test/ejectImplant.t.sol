@@ -76,29 +76,29 @@ contract EjectTest is Test {
   //allow jr to remove himself from the safe
   function testSelfEject() public {
     vm.prank(jr);
-    eject.selfEject();
+    eject.selfEject(false);
     assertEq(safe.isOwner(address(jr)), false);
   }
 
     //jr cannot use the ejectOwner method bc he doesn't have ACL in the contract, can only selfEject
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr);
+    eject.ejectOwner(jr, 1);
     assertEq(safe.isOwner(address(jr)), true);
   }
 
   function testEjection() public { 
     vm.prank(dao);
-    eject.ejectOwner(tester2);
+    eject.ejectOwner(tester2, 1);
     assertEq(safe.isOwner(address(tester2)), false);
     vm.prank(dao);
-    eject.ejectOwner(jr);
+    eject.ejectOwner(jr, 1);
     assertEq(safe.isOwner(address(jr)), false);
     vm.prank(dao);
-    eject.ejectOwner(tester);
+    eject.ejectOwner(tester, 1);
     assertEq(safe.isOwner(address(tester)), false);
     vm.prank(dao);
-    eject.ejectOwner(owner);
+    eject.ejectOwner(owner, 1);
     assertEq(safe.isOwner(address(owner)), false);
   }
 

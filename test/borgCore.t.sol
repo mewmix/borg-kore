@@ -85,14 +85,14 @@ contract BorgCoreTest is Test {
   //allow jr to remove himself from the safe
   function testSelfEject() public {
     vm.prank(jr);
-    eject.selfEject();
+    eject.selfEject(false);
     assertEq(safe.isOwner(address(jr)), false);
   }
 
     //jr cannot use the ejectOwner method bc he doesn't have ACL in the contract, can only selfEject
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr);
+    eject.ejectOwner(jr, 1);
     assertEq(safe.isOwner(address(jr)), true);
   }
 

@@ -22,7 +22,6 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         uint256 amountSpent;
     }
 
-    
     error optimisticGrantImplant_invalidToken();
     error optimisticGrantImplant_GrantCountLimitReached();
     error optimisticGrantImplant_GrantTimeLimitReached();
@@ -55,7 +54,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         requireBorgVote = _requireBorgVote;
     }
 
-    function createGrant(address _token, address _recipient, uint256 _amount) external {
+    function createDirectGrant(address _token, address _recipient, uint256 _amount) external {
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
         if(block.timestamp >= grantTimeLimit)
@@ -84,7 +83,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
             ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
     }
 
-    function createDirectGrant(address _token, address _recipient, uint256 _amount) external {
+    function createBasicGrant(address _token, address _recipient, uint256 _amount) external {
 
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
@@ -128,9 +127,10 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
             milestones: emptyMilestones,
             transferable: false
         });
+        
         //approve metaVest to spend the amount
         ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call);
-        metaVesTController.createMetavestAndLockTokens(_metavestDetails);
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens(MetaVesT.MetaVesTDetails calldata)", _metavestDetails), Enum.Operation.Call);
     }
 
      function createAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
@@ -165,6 +165,6 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
             revert optimisticGrantImplant_GrantSpendingLimitReached();
 
         ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
-        metaVesTController.createMetavestAndLockTokens(_metaVestDetails);
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens(MetaVesT.MetaVesTDetails)", _metaVestDetails), Enum.Operation.Call);
     }
 }

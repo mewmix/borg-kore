@@ -24,15 +24,16 @@ contract ejectImplant is BaseImplant {
     }
 
     /// @notice for an 'owner' to eject an 'owner' from the Safe
-    /// @param owner address of the 'owner' to be ejected from the Safe
-    function ejectOwner(address owner) external onlyOwner {
+    /// @param _owner address of the 'owner' to be ejected from the Safe
+    /// @param _threshold updating the minimum number of 'owners' required to approve a transaction to this value
+    function ejectOwner(address _owner, uint256 _threshold) external onlyOwner {
 
         if (!checkConditions()) revert ejectImplant_ConditionsNotMet();
 
         address[] memory owners = ISafe(BORG_SAFE).getOwners();
         address prevOwner = address(0x1);
         for (uint256 i = 1; i <= owners.length-1; i++) {
-            if (owners[i] == owner) {
+            if (owners[i] == _owner) {
                 prevOwner = owners[i - 1];
                 break;
             }
@@ -40,9 +41,70 @@ contract ejectImplant is BaseImplant {
         bytes memory data = abi.encodeWithSignature(
             "removeOwner(address,address,uint256)",
             prevOwner,
-            owner,
-            1
+            _owner,
+            _threshold
         );
+
+        ISafe(BORG_SAFE).execTransactionFromModule(
+            BORG_SAFE,
+            0,
+            data,
+            Enum.Operation.Call
+        );
+    }
+
+    function swapOwner(address _oldOwner, address _newOwner) external onlyOwner {
+        if (!checkConditions()) revert ejectImplant_ConditionsNotMet();
+
+        address[] memory owners = ISafe(BORG_SAFE).getOwners();
+        address prevOwner = address(0x1);
+        for (uint256 i = 1; i <= owners.length-1; i++) {
+            if (owners[i] == _oldOwner) {
+                prevOwner = owners[i - 1];
+                break;
+            }
+        }
+
+        bytes memory data = abi.encodeWithSignature(
+            "swapOwner(address,address,address)",
+            prevOwner,
+            _oldOwner,
+            _newOwner
+        );
+
+        ISafe(BORG_SAFE).execTransactionFromModule(
+            BORG_SAFE,
+            0,
+            data,
+            Enum.Operation.Call
+        );
+    }
+
+    function changeThreshold(uint256 _newThreshold) external onlyOwner {
+        if (!checkConditions()) revert ejectImplant_ConditionsNotMet();
+
+        bytes memory data = abi.encodeWithSignature(
+            "changeThreshold(uint256)",
+            _newThreshold
+        );
+
+        ISafe(BORG_SAFE).execTransactionFromModule(
+            BORG_SAFE,
+            0,
+            data,
+            Enum.Operation.Call
+        );
+    }
+
+    function addOwner(address _newOwner, uint256 _threshold) external onlyOwner {
+        if (!checkConditions()) revert ejectImplant_ConditionsNotMet();
+
+        bytes memory data = abi.encodeWithSignature(
+            "addOwner(address,uint256)",
+            _newOwner,
+            _threshold
+        );
+
         ISafe(BORG_SAFE).execTransactionFromModule(
             BORG_SAFE,
             0,
@@ -52,7 +114,7 @@ contract ejectImplant is BaseImplant {
     }
 
     /// @notice for a msg.sender 'owner' to self-eject from the BORG
-    function selfEject() public conditionCheck {
+    function selfEject(bool _reduce) public conditionCheck {
         if (!ISafe(BORG_SAFE).isOwner(msg.sender)) revert ejectImplant_NotOwner();
 
         address[] memory owners = ISafe(BORG_SAFE).getOwners();
@@ -64,11 +126,17 @@ contract ejectImplant is BaseImplant {
             }
         }
 
+        uint256 threshold = ISafe(BORG_SAFE).getThreshold();
+
+        if(_reduce && (threshold > 1) && (owners.length > threshold)){
+           threshold = threshold-1;
+        }
+
         bytes memory data = abi.encodeWithSignature(
             "removeOwner(address,address,uint256)",
             prevOwner,
             msg.sender,
-            1
+            threshold
         );
         ISafe(BORG_SAFE).execTransactionFromModule(
             address(BORG_SAFE),

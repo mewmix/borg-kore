@@ -242,13 +242,13 @@ function testSign_AllSigners_AndLogic() public {
 
   function testSelfEject() public {
     vm.prank(jr);
-    eject.selfEject();
+    eject.selfEject(false);
     assertEq(safe.isOwner(address(jr)), false);
   }
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr);
+    eject.ejectOwner(jr,1 );
     assertEq(safe.isOwner(address(jr)), true);
   }
 

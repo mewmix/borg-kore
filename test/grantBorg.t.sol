@@ -87,7 +87,7 @@ contract GrantBorgTest is Test {
     metaVesTController = new MetaVesTController(MULTISIG, voting_auth, address(govToken));
     controllerAddr = address(metaVesTController);
 
-    metaVesT = new MetaVesT(MULTISIG, controllerAddr, voting_auth, address(govToken));
+    metaVesT = new MetaVesT(controllerAddr, voting_auth, address(govToken));
 
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1);
@@ -159,7 +159,7 @@ contract GrantBorgTest is Test {
     opGrant.toggleBorgVote(false);
 
     vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 2 ether);
+    opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
 
     //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
   }
@@ -207,10 +207,10 @@ contract GrantBorgTest is Test {
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 2 ether);
+    opGrant.createDirectGrant(dai_addr, address(jr), 2 ether);
 
     vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 2 ether);
+    opGrant.createDirectGrant(dai_addr, address(jr), 2 ether);
 
     //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
   }
@@ -224,7 +224,7 @@ contract GrantBorgTest is Test {
     opGrant.setGrantLimits(5, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(owner);
-    opGrant.createGrant(dai_addr, address(jr), 3 ether);
+    opGrant.createDirectGrant(dai_addr, address(jr), 3 ether);
 
   }
 
@@ -237,7 +237,7 @@ contract GrantBorgTest is Test {
     opGrant.setGrantLimits(6, block.timestamp +2592000); // 1 grant by march 31, 2024
 
     vm.prank(owner);
-    opGrant.createGrant(usdc_addr, address(jr), 1 ether);
+    opGrant.createDirectGrant(usdc_addr, address(jr), 1 ether);
 
   }
 
@@ -292,20 +292,38 @@ contract GrantBorgTest is Test {
     vm.prank(owner);
     sigCondition.sign();
     vm.prank(dao);
-    eject.ejectOwner(address(jr));
+    eject.ejectOwner(address(jr), 1);
     assertEq(safe.isOwner(address(jr)), false);
   }
 
   function testSelfEject() public {
     vm.prank(jr);
-    eject.selfEject();
+    eject.selfEject(false);
     assertEq(safe.isOwner(address(jr)), false);
   }
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr);
+    eject.ejectOwner(jr, 1);
     assertEq(safe.isOwner(address(jr)), true);
+  }
+
+  function testSimpleGrant() public {
+    vm.prank(dao);
+    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
+
+    vm.prank(dao);
+    opGrant.toggleBorgVote(false);
+    
+    vm.prank(owner);
+    opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
+    metaVesT.refreshMetavest(address(jr));
+    uint256 amount = metaVesT.getAmountWithdrawable(address(jr), dai_addr);
+    vm.prank(jr);
+    metaVesT.withdraw(dai_addr, amount);
   }
 
 
@@ -407,7 +425,7 @@ contract GrantBorgTest is Test {
 
     function getCreateGrant(address token, address rec, uint256 amount) public view returns (GnosisTransaction memory) {
         bytes4 addContractMethod = bytes4(
-            keccak256("createGrant(address,address,uint256)")
+            keccak256("createDirectGrant(address,address,uint256)")
         );
 
         bytes memory guardData = abi.encodeWithSelector(
