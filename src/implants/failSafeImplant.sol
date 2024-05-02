@@ -15,6 +15,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
     error failSafeImplant_NotAuthorized();
     error failSafeImplant_ConditionsNotMet();
     error failSafeImplant_InvalidToken();
+    error failSafeImplant_FailedTransfer();
 
     struct TokenInfo {
         address tokenAddress;
@@ -39,10 +40,11 @@ contract failSafeImplant is BaseImplant { //is baseImplant
         tokenList.push(newToken);
     }
 
+
     function recoverSafeFunds() external {
 
         ISafe gnosisSafe = ISafe(BORG_SAFE);
-        require(checkConditions(), "Conditions not met");
+        if(!checkConditions()) revert failSafeImplant_ConditionsNotMet();
 
         for(uint i = 0; i < tokenList.length; i++) {
             if(tokenList[i].tokenType == 1) {
@@ -53,15 +55,15 @@ contract failSafeImplant is BaseImplant { //is baseImplant
                 bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", RECOVERY_ADDRESS, amountToSend);
                 // Request the Safe to execute the token transfer
                 bool success = gnosisSafe.execTransactionFromModule(tokenList[i].tokenAddress, 0, data, Enum.Operation.Call);
-                require(success, "Failed to execute transfer from Safe");
+                if(!success) revert failSafeImplant_FailedTransfer();
             } else if(tokenList[i].tokenType == 2) {
                 bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", BORG_SAFE, RECOVERY_ADDRESS, tokenList[i].id);
                 bool success = gnosisSafe.execTransactionFromModule(tokenList[i].tokenAddress, 0, data, Enum.Operation.Call);
-                require(success, "Failed to execute transfer from Safe");
+                if(!success) revert failSafeImplant_FailedTransfer();
             } else if(tokenList[i].tokenType == 3) {
                 bytes memory data = abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes)", BORG_SAFE, RECOVERY_ADDRESS, tokenList[i].id, tokenList[i].amount, "");
                 bool success = gnosisSafe.execTransactionFromModule(tokenList[i].tokenAddress, 0, data, Enum.Operation.Call);
-                require(success, "Failed to execute transfer from Safe");
+                if(!success) revert failSafeImplant_FailedTransfer();
             }
         }
     }
@@ -72,21 +74,21 @@ contract failSafeImplant is BaseImplant { //is baseImplant
         bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", RECOVERY_ADDRESS, amountToSend);
         // Request the Safe to execute the token transfer
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
-        require(success, "Failed to execute transfer from Safe");
+        if(!success) revert failSafeImplant_FailedTransfer();
     }
 
     function recoverSafeFundsERC721(address _token, uint256 _id) external onlyOwner conditionCheck {
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", BORG_SAFE, RECOVERY_ADDRESS, _id);
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
-        require(success, "Failed to execute transfer from Safe");
+        if(!success) revert failSafeImplant_FailedTransfer();
     }
 
     function recoverSafeFundsERC1155(address _token, uint256 _id, uint256 _amount) external onlyOwner conditionCheck {
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         bytes memory data = abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes)", BORG_SAFE, RECOVERY_ADDRESS, _id, _amount, "");
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
-        require(success, "Failed to execute transfer from Safe");
+        if(!success) revert failSafeImplant_FailedTransfer();
     }
 }
 

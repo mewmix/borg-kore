@@ -94,6 +94,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     error BORG_CORE_MethodNotAuthorized();
     error BORG_CORE_MethodCooldownActive();
     error BORG_CORE_NativeCooldownActive();
+    error BORG_CORE_InvalidDocumentIndex();
 
     /// Constructor
     /// @param _auth Address, ideally an oversight multisig or other safeguard.
@@ -262,7 +263,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
 
     //remove legal agreement
     function removeLegalAgreement(uint256 _index) public onlyAdmin {
-        require(_index < legalAgreements.length, "Index out of bounds");
+        if(_index > legalAgreements.length) revert BORG_CORE_InvalidDocumentIndex();
         string memory _removedAgreement = legalAgreements[_index];
         legalAgreements[_index] = legalAgreements[legalAgreements.length - 1];
         legalAgreements.pop();

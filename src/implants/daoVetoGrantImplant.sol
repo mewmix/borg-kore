@@ -46,6 +46,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     error daoVetoGrantImplant_InvalidToken();
     error daoVetoGrantImplant_ProposalNotReady();
     error daoVetoGrantImplant_ProposalExecutionError();
+    error daoVetoGrantImplant_ProposalNotFound();
 
     Proposal[] public currentProposals;
     mapping(uint256 => prop) public vetoProposals;
@@ -117,13 +118,13 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
 
     function _getProposal(uint256 _proposalId) internal view returns (Proposal storage) {
         uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
-        require(proposalIndex > 0, "Proposal not found");
+        if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
         return currentProposals[proposalIndex - 1];
     }
 
     function _deleteProposal(uint256 _proposalId) public {
         uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
-        require(proposalIndex > 0, "Proposal not found");
+        if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
         uint256 lastProposalIndex = currentProposals.length - 1;
         if (proposalIndex != lastProposalIndex) {
             currentProposals[proposalIndex - 1] = currentProposals[lastProposalIndex];
