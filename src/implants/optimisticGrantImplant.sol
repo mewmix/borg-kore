@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
@@ -31,7 +31,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
 
     mapping(address => approvedGrantToken) public approvedGrantTokens;
 
-    constructor(Auth _auth, address _borgSafe, address _metaVest, address _metaVestController) BaseImplant(_auth, _borgSafe) {
+    constructor(BorgAuth _auth, address _borgSafe, address _metaVest, address _metaVestController) BaseImplant(_auth, _borgSafe) {
         metaVesT = MetaVesT(_metaVest);
         metaVesTController = MetaVesTController(_metaVestController);
     }
@@ -114,10 +114,10 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
                 unlockingCliffCredit: uint128(_amount),
                 vestingRate: 0,
                 vestingStartTime: 0,
-                vestingStopTime: 0,
-                unlockRate: 0,
+                vestingStopTime: 1,
+                unlockRate: 1,
                 unlockStartTime: 0,
-                unlockStopTime: 0,
+                unlockStopTime: 1,
                 tokenContract: _token
             }),
             option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
@@ -130,7 +130,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         
         //approve metaVest to spend the amount
         ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens(MetaVesT.MetaVesTDetails calldata)", _metavestDetails), Enum.Operation.Call);
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call);
     }
 
      function createAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
@@ -165,6 +165,6 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
             revert optimisticGrantImplant_GrantSpendingLimitReached();
 
         ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens(MetaVesT.MetaVesTDetails)", _metaVestDetails), Enum.Operation.Call);
-    }
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails), Enum.Operation.Call);
+      }
 }

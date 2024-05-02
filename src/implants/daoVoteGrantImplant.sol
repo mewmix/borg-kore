@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
@@ -41,7 +41,7 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
     error daoVoteGrantImplant_invalidToken();
 
 
-    constructor(Auth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, address _governanceAdapter, address _governanceExecutor, address _metaVesT, address _metaVesTController) BaseImplant(_auth, _borgSafe) {
+    constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, address _governanceAdapter, address _governanceExecutor, address _metaVesT, address _metaVesTController) BaseImplant(_auth, _borgSafe) {
         duration = _duration;
         quorum = _quorum;
         threshold = _threshold;
@@ -190,7 +190,7 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
 
-        //Configure the metavest details
+       //Configure the metavest details
         MetaVesT.Milestone[] memory emptyMilestones;
         MetaVesT.MetaVesTDetails memory _metavestDetails = MetaVesT.MetaVesTDetails({
             metavestType: MetaVesT.MetaVesTType.ALLOCATION,
@@ -205,10 +205,10 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
                 unlockingCliffCredit: uint128(_amount),
                 vestingRate: 0,
                 vestingStartTime: 0,
-                vestingStopTime: 0,
-                unlockRate: 0,
+                vestingStopTime: 1,
+                unlockRate: 1,
                 unlockStartTime: 0,
-                unlockStopTime: 0,
+                unlockStopTime: 1,
                 tokenContract: _token
             }),
             option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
@@ -220,24 +220,26 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
         });
         //approve metaVest to spend the amount
         ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call);
-        metaVesTController.createMetavestAndLockTokens(_metavestDetails);
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call);
+  
     }
 
-    function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
+    function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metavestDetails) external {
 
         if(governanceExecutor != msg.sender)
         revert daoVoteGrantImplant_CallerNotGovernance();
 
          //cycle through any allocations and approve the metavest to spend the amount
         uint256 _milestoneTotal;
-        for (uint256 i; i < _metaVestDetails.milestones.length; ++i) {
-            _milestoneTotal += _metaVestDetails.milestones[i].milestoneAward;
+        for (uint256 i; i < _metavestDetails.milestones.length; ++i) {
+            _milestoneTotal += _metavestDetails.milestones[i].milestoneAward;
         }
-        uint256 _total = _metaVestDetails.allocation.tokenStreamTotal +
+        uint256 _total = _metavestDetails.allocation.tokenStreamTotal +
             _milestoneTotal;
 
-        ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
-        metaVesTController.createMetavestAndLockTokens(_metaVestDetails);
+        ISafe(BORG_SAFE).execTransactionFromModule(_metavestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call);
+  
     }
 
     function getProposalDetails(uint256 _proposalId) external view returns (proposalDetail memory) {

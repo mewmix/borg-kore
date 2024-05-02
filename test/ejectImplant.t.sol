@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity 0.8.20;
 import "forge-std/Test.sol";
 import "../src/borgCore.sol";
 import "../src/implants/ejectImplant.sol";
@@ -13,7 +13,7 @@ contract EjectTest is Test {
   IGnosisSafe safe;
   borgCore core;
   ejectImplant eject;
-  Auth auth;
+  BorgAuth auth;
   failSafeImplant failSafe;
 
   IMultiSendCallOnly multiSendCallOnly =
@@ -44,7 +44,7 @@ contract EjectTest is Test {
     usdc = ERC20(usdc_addr);
     dai = ERC20(dai_addr);
     vm.prank(dao);
-    auth = new Auth();
+    auth = new BorgAuth();
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1);
     

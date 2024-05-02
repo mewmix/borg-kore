@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.20;
+
 import {Script} from "forge-std/Script.sol";
 import "../src/borgCore.sol";
 import "../src/implants/ejectImplant.sol";
@@ -23,7 +25,7 @@ contract BaseScript is Script {
   IGnosisSafe safe;
   borgCore core;
   ejectImplant eject;
-  Auth auth;
+  BorgAuth auth;
   optimisticGrantImplant opGrant;
   daoVoteGrantImplant voteGrant;
   daoVetoGrantImplant vetoGrant;
@@ -39,7 +41,7 @@ contract BaseScript is Script {
             deployerAddress = vm.addr(vm.envUint("PRIVATE_KEY_DEPLOY"));
             uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
             vm.startBroadcast(deployerPrivateKey);
-            auth = new Auth();
+            auth = new BorgAuth();
             auth.updateRole(gxpl, 98);
             govToken = new MockERC20Votes("OnlyBORGs", "oBORG");
             mockDao = new MockDAO(govToken, auth);

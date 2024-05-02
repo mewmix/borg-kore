@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity 0.8.20;
 
 import "openzeppelin/contracts/governance/Governor.sol";
 import "openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
@@ -19,7 +19,7 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
     mapping(uint256 => ProposalThresholds) public proposalThresholds;
     mapping(uint256 => ProposalVote) public _proposalVotes;
 
-    constructor(IVotes _token, Auth _auth) GlobalACL(_auth)
+    constructor(IVotes _token, BorgAuth _auth) GlobalACL(_auth)
         Governor("CustomGovernor")
         GovernorVotes(_token)
         GovernorCountingSimple()

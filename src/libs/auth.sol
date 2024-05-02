@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//ascii art for BORG ART 3d looking
 /*                                                                                           
     _/_/_/      _/_/    _/_/_/      _/_/_/        _/_/    _/    _/  _/_/_/_/_/  _/    _/   
    _/    _/  _/    _/  _/    _/  _/            _/    _/  _/    _/      _/      _/    _/    
@@ -9,23 +8,23 @@
 _/_/_/      _/_/    _/    _/    _/_/_/      _/    _/    _/_/        _/      _/    */ 
 
 
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 interface IAuthAdapter {
     function isAuthorized(address user) external view returns (uint256);
 }
 
 
-/// @title Auth
+/// @title BorgAuth
 /// @notice ACL with extensibility for different role hierarchies and custom adapters
-contract Auth {
+contract BorgAuth {
     //cosntants
     uint256 public constant OWNER_ROLE = 99;
     uint256 public constant ADMIN_ROLE = 98;
     uint256 public constant PRIVILEGED_ROLE = 97;
 
     /// @dev user not authorized with given role
-    error NotAuthorized(uint256 role, address user);
+    error BorgAuth_NotAuthorized(uint256 role, address user);
 
     mapping(address => uint256) public userRoles;
     // Mapping from role to adapters
@@ -54,8 +53,8 @@ contract Auth {
         IAuthAdapter adapter = roleAdapters[user];
         if (address(adapter) != address(0)) 
              if (adapter.isAuthorized(user) < role) 
-                revert NotAuthorized(role, user);
-         revert NotAuthorized(role, user);
+                revert BorgAuth_NotAuthorized(role, user);
+         revert BorgAuth_NotAuthorized(role, user);
         }
     }
 
@@ -68,10 +67,12 @@ contract Auth {
 }
 
 abstract contract GlobalACL {
-    Auth public immutable AUTH;
+    BorgAuth public immutable AUTH;
 
-    constructor(Auth _auth) {
-        require(address(_auth) != address(0), "GlobalACL: zero address");
+    error GlobalACL_ZeroAddress();
+
+    constructor(BorgAuth _auth) {
+        if(address(_auth) == address(0)) revert GlobalACL_ZeroAddress();
         AUTH = _auth;
     }
 

@@ -11,7 +11,7 @@
                                     *************************************
                                                                         */
 
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 import "./baseGuard.sol";
 import "./libs/auth.sol";
@@ -87,6 +87,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     /// Errors
     error BORG_CORE_InvalidRecipient();
     error BORG_CORE_InvalidContract();
+    error BORG_CORE_InvalidParam();
     error BORG_CORE_AmountOverLimit();
     error BORG_CORE_ArraysDoNotMatch();
     error BORG_CORE_ExactMatchParamterFailed();
@@ -96,7 +97,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
 
     /// Constructor
     /// @param _auth Address, ideally an oversight multisig or other safeguard.
-    constructor(Auth _auth, uint256 _borgType) GlobalACL(_auth) {
+    constructor(BorgAuth _auth, uint256 _borgType) GlobalACL(_auth) {
         borgType = _borgType;
     }
 
@@ -315,7 +316,6 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
         uint256 _byteOffset,
         uint256 _byteLength
     ) public onlyOwner {
-        require(_paramType == ParamType.ADDRESS || _paramType == ParamType.STRING || _paramType == ParamType.BYTES, "Invalid param type for exact match");
         _addParameterConstraint(_contract, _methodSignature, _paramType,  0, 0, 0, 0, _exactMatch, _byteOffset, _byteLength);
     }
 

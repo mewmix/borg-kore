@@ -1,7 +1,5 @@
-
 // SPDX-License-Identifier: AGPL-3.0-only
-
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
@@ -27,7 +25,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
 
     TokenInfo[] public tokenList;
 
-    constructor(Auth _auth, address _borgSafe, address _recoveryAddress) BaseImplant(_auth, _borgSafe) {
+    constructor(BorgAuth _auth, address _borgSafe, address _recoveryAddress) BaseImplant(_auth, _borgSafe) {
         RECOVERY_ADDRESS = _recoveryAddress;
     }
 

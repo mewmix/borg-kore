@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 import "../../interfaces/ICondition.sol";
 import "../auth.sol";
@@ -18,12 +18,13 @@ contract ConditionManager is GlobalACL {
     Condition[] public conditions;
     mapping(bytes4 => Condition[]) public conditionsByFunction;
 
-    error ConditionDoesNotExist();
+    error ConditionManager_ConditionDoesNotExist();
+    error ConditionManager_ConditionNotMet();
 
     event ConditionAdded(Condition);
     event ConditionRemoved(Condition);
 
-    constructor(Auth _auth) GlobalACL(_auth) {}
+    constructor(BorgAuth _auth) GlobalACL(_auth) {}
 
     /// @notice allows owner to add a Condition
     /// @param _op Logic enum, either 'AND' (all conditions must be true) or 'OR' (only one of the conditions must be true)
@@ -38,7 +39,7 @@ contract ConditionManager is GlobalACL {
     /// @param _index element of the 'conditions' array to be removed
     function removeCondition(uint256 _index) external onlyOwner {
         uint256 _maxIndex = conditions.length - 1; // max index is the length of the array - 1, since the index counter starts at 0; will revert from underflow if conditions.length == 0
-        if (_index > _maxIndex) revert ConditionDoesNotExist();
+        if (_index > _maxIndex) revert ConditionManager_ConditionDoesNotExist();
 
         emit ConditionRemoved(conditions[_index]);
         // copy the last element into the _index place rather than deleting the indexed element, to avoid a gap in the array once the indexed element is deleted
@@ -78,7 +79,7 @@ contract ConditionManager is GlobalACL {
         Condition[] memory conditionsToCheck = conditionsByFunction[msg.sig];
         for(uint256 i = 0; i < conditionsToCheck.length; i++) {
             if(conditionsToCheck[i].op == Logic.AND) {
-                require(ICondition(conditionsToCheck[i].condition).checkCondition(), "ConditionManager: condition not met");
+                if(!ICondition(conditionsToCheck[i].condition).checkCondition()) revert ConditionManager_ConditionNotMet();
             } else {
                 if(ICondition(conditionsToCheck[i].condition).checkCondition()) {
                    break;

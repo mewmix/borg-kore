@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 /// @title EIP-4824 DAOs
 /// @dev See https://eips.ethereum.org/EIPS/eip-4824

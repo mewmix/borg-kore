@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.19;
 
 import "../libs/auth.sol";
@@ -30,7 +30,7 @@ contract GrantMilestones is GlobalACL {
     error GrantMilestones_MilestoneNotAchieved();
 
     //May delete this version and just used the locked version..
-    constructor(Auth _auth, address _borgSafe) GlobalACL(_auth) {
+    constructor(BorgAuth _auth, address _borgSafe) GlobalACL(_auth) {
         BORG_SAFE = _borgSafe;
     }
 

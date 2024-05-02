@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity 0.8.20;
 import "forge-std/Test.sol";
 import "../src/borgCore.sol";
 import "../src/implants/ejectImplant.sol";
@@ -20,7 +20,7 @@ contract GrantBorgTest is Test {
   IGnosisSafe safe;
   borgCore core;
   ejectImplant eject;
-  Auth auth;
+  BorgAuth auth;
   optimisticGrantImplant opGrant;
   daoVoteGrantImplant voteGrant;
   daoVetoGrantImplant vetoGrant;
@@ -70,7 +70,7 @@ contract GrantBorgTest is Test {
     
     
     vm.prank(dao);
-    auth = new Auth();
+    auth = new BorgAuth();
     vm.prank(dao);
     auth.updateRole(owner, 98);
 
@@ -87,7 +87,7 @@ contract GrantBorgTest is Test {
     metaVesTController = new MetaVesTController(MULTISIG, voting_auth, address(govToken));
     controllerAddr = address(metaVesTController);
 
-    metaVesT = new MetaVesT(controllerAddr, voting_auth, address(govToken));
+    metaVesT = MetaVesT(metaVesTController.metavest());
 
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1);
@@ -135,8 +135,6 @@ contract GrantBorgTest is Test {
     deal(MULTISIG, 2 ether);
     deal(address(dai), MULTISIG, 2000 ether);
     //wrap ether from the multisig
-
-
  
   }
 
@@ -265,13 +263,14 @@ contract GrantBorgTest is Test {
     vm.prank(owner);
     uint256 grantId = voteGrant.proposeDirectGrant(dai_addr, address(jr), 1000 ether, "ipfs link to grant details");
     //warp ahead 100 blocks
-   // uint256 newTimestamp = startTimestamp + 100; // 101
-   // vm.warp(newTimestamp);
-    skip(1000);
+    uint256 newTimestamp = startTimestamp + 1000; // 101
+    vm.warp(newTimestamp);
+    //skip(1000);
     assertTrue(govToken.balanceOf(address(this)) == 1e30);
     assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Active);
     mockDao.castVote(grantId, 1);
-    skip(86400);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
     //create a new prop struct from daoVoteGrantImplant
    // daoVoteGrantImplant.prop memory proposal = daoVoteGrantImplant.prop({targets: new address[](1), values: new uint256[](1), proposalBytecodes: new bytes[](1), desc: "ipfs link to grant details"});
    // daoVoteGrantImplant.prop memory proposal = voteGrant.proposals(grantId);
@@ -283,9 +282,47 @@ contract GrantBorgTest is Test {
     mockDao.voteSucceeded(grantId);
     mockDao.quorumReached(grantId);
    // mockDao.queue(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
-    skip(86400);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
     mockDao.execute(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
 
+  }
+
+  function testFailSimpleVoteGrantUnauthorized() public
+  {
+             MetaVesT.Milestone[] memory emptyMilestones;
+               MetaVesT.MetaVesTDetails memory _metavestDetails = MetaVesT.MetaVesTDetails({
+            metavestType: MetaVesT.MetaVesTType.ALLOCATION, // simple allocation since more functionalities will be tested in MetaVesTController.t
+            allocation: MetaVesT.Allocation({
+                tokenStreamTotal: 2 ether,
+                tokenGoverningPower: 0,
+                tokensVested: 0,
+                tokensUnlocked: 0,
+                vestedTokensWithdrawn: 0,
+                unlockedTokensWithdrawn: 0,
+                vestingCliffCredit: 0,
+                unlockingCliffCredit: 0,
+                vestingRate: uint160(10),
+                vestingStartTime: uint48(2 ** 20),
+                vestingStopTime: uint48(2 ** 40),
+                unlockRate: uint160(10),
+                unlockStartTime: uint48(2 ** 20),
+                unlockStopTime: uint48(2 ** 40),
+                tokenContract: dai_addr
+            }),
+            option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
+            rta: MetaVesT.RestrictedTokenAward({repurchasePrice: 0, tokensRepurchasable: 0, shortStopTime: uint48(0)}),
+            eligibleTokens: MetaVesT.GovEligibleTokens({nonwithdrawable: false, vested: true, unlocked: true}),
+            milestones: emptyMilestones, // milestones tested separately
+            grantee: jr,
+            transferable: false
+        });
+
+        deal(address(dai), address(this), 2000 ether);
+        vm.prank(MULTISIG);
+        dai.approve(address(metaVesT), 20 ether);
+        dai.approve(address(metaVesT), 20 ether);
+        metaVesTController.createMetavestAndLockTokens(_metavestDetails);
   }
 
    function testDAOEject() public {
@@ -317,11 +354,12 @@ contract GrantBorgTest is Test {
 
     vm.prank(dao);
     opGrant.toggleBorgVote(false);
-    
+    assertEq(address(opGrant.metaVesTController()), address(metaVesTController));
     vm.prank(owner);
     opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
-    metaVesT.refreshMetavest(address(jr));
-    uint256 amount = metaVesT.getAmountWithdrawable(address(jr), dai_addr);
+    skip(10);
+    metaVesT.refreshMetavest(jr);
+    uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
     vm.prank(jr);
     metaVesT.withdraw(dai_addr, amount);
   }
@@ -435,6 +473,48 @@ contract GrantBorgTest is Test {
             amount
         );
         GnosisTransaction memory txData = GnosisTransaction({to: address(opGrant), value: 0, data: guardData}); 
+        return txData;
+    }
+
+    function getCreateBasicGrant(address token, address rec, uint256 amount) public view returns (GnosisTransaction memory) {
+            //Configure the metavest details
+        uint256 _unlocked = amount/2;
+        uint256 _vested = amount/2;
+         MetaVesT.Milestone[] memory emptyMilestones;
+               MetaVesT.MetaVesTDetails memory _metavestDetails = MetaVesT.MetaVesTDetails({
+            metavestType: MetaVesT.MetaVesTType.ALLOCATION, // simple allocation since more functionalities will be tested in MetaVesTController.t
+            allocation: MetaVesT.Allocation({
+                tokenStreamTotal: amount,
+                tokenGoverningPower: 0,
+                tokensVested: 0,
+                tokensUnlocked: 0,
+                vestedTokensWithdrawn: 0,
+                unlockedTokensWithdrawn: 0,
+                vestingCliffCredit: 0,
+                unlockingCliffCredit: 0,
+                vestingRate: uint160(10),
+                vestingStartTime: uint48(2 ** 20),
+                vestingStopTime: uint48(2 ** 40),
+                unlockRate: uint160(10),
+                unlockStartTime: uint48(2 ** 20),
+                unlockStopTime: uint48(2 ** 40),
+                tokenContract: token
+            }),
+            option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
+            rta: MetaVesT.RestrictedTokenAward({repurchasePrice: 0, tokensRepurchasable: 0, shortStopTime: uint48(0)}),
+            eligibleTokens: MetaVesT.GovEligibleTokens({nonwithdrawable: false, vested: true, unlocked: true}),
+            milestones: emptyMilestones, // milestones tested separately
+            grantee: rec,
+            transferable: false
+        });
+        bytes4 addContractMethod = bytes4(
+            keccak256("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))")
+        );
+        bytes memory guardData = abi.encodeWithSelector(
+            addContractMethod,
+            _metavestDetails
+        );
+        GnosisTransaction memory txData = GnosisTransaction({to: address(metaVesTController), value: 0, data: guardData});
         return txData;
     }
 

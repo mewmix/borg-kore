@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+// SPDX-License-Identifier: AGPL-3.0-only
+pragma solidity 0.8.20;
 import "forge-std/Test.sol";
 import "../src/borgCore.sol";
 import "../src/implants/failSafeImplant.sol";
@@ -16,7 +16,7 @@ contract PBVBorgTest is Test {
   borgCore core;
   failSafeImplant failSafe;
   ejectImplant eject;
-  Auth auth;
+  BorgAuth auth;
   optimisticGrantImplant opGrant;
   daoVetoGrantImplant vetoGrant;
 
@@ -55,7 +55,7 @@ contract PBVBorgTest is Test {
     
     
     vm.prank(dao);
-    auth = new Auth();
+    auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1);

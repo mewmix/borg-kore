@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
@@ -17,7 +17,7 @@ contract ejectImplant is BaseImplant {
 
     /// @param _auth initialize authorization parameters for this contract, including applicable conditions
     /// @param _borgSafe address of the applicable BORG's Gnosis Safe which is adding this ejectImplant
-    constructor(Auth _auth, address _borgSafe, address _failSafe) BaseImplant(_auth, _borgSafe) {
+    constructor(BorgAuth _auth, address _borgSafe, address _failSafe) BaseImplant(_auth, _borgSafe) {
         if (IBaseImplant(_failSafe).IMPLANT_ID() != 0)
             revert ejectImplant_InvalidFailSafeImplant();
         FAIL_SAFE = _failSafe;
