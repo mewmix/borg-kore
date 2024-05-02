@@ -64,6 +64,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     string[] public legalAgreements;
     string public constant VERSION = "0.0.1";
     uint256 public immutable borgType;
+    bool unrestrictedMode = false;
 
     /// Whitelist Mappings
     mapping(address => Recipient) public whitelistedRecipients;
@@ -122,6 +123,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     ) 
         external override
     {
+        if(unrestrictedMode) return;
         if (value > 0 && data.length == 0) {
             // Native Gas transfer
             if(!whitelistedRecipients[to].approved) {
@@ -152,6 +154,10 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
          else {
             revert BORG_CORE_InvalidContract();
          }
+    }
+
+    function changeUnrestrictedMode(bool _mode) external onlyOwner {
+        unrestrictedMode = _mode;
     }
 
     /// @dev This is post transaction execution. We can react but cannot revert what just occured.
