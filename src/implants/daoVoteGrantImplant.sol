@@ -41,14 +41,14 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
     error daoVoteGrantImplant_invalidToken();
 
 
-    constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, address _governanceAdapter, address _governanceExecutor, address _metaVesT, address _metaVesTController) BaseImplant(_auth, _borgSafe) {
+    constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, address _governanceAdapter, address _governanceExecutor, address _metaVestController) BaseImplant(_auth, _borgSafe) {
         duration = _duration;
         quorum = _quorum;
         threshold = _threshold;
         governanceAdapter = _governanceAdapter;
         governanceExecutor = _governanceExecutor;
-        metaVesT = MetaVesT(_metaVesT);
-        metaVesTController = MetaVesTController(_metaVesTController);
+        metaVesTController = MetaVesTController(_metaVestController);
+        metaVesT = MetaVesT(metaVesTController.metavest());
     }
 
     function updateDuration(uint256 _duration) external onlyOwner {

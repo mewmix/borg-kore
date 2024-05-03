@@ -54,7 +54,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     mapping(address => uint256) approvedGrantTokens;
     uint256 internal constant PERC_SCALE = 10000;
 
-    constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint _quorum, uint256 _threshold, uint _waitingPeriod, address _governanceAdapter, address _governanceExecutor, address _metaVesT, address _metaVesTController) BaseImplant(_auth, _borgSafe) {
+    constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint _quorum, uint256 _threshold, uint _waitingPeriod, address _governanceAdapter, address _governanceExecutor,address _metaVestController) BaseImplant(_auth, _borgSafe) {
         duration = _duration;
         quorum = _quorum;
         threshold = _threshold;
@@ -62,8 +62,8 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         lastMotionId=0;
         governanceAdapter = _governanceAdapter;
         governanceExecutor = _governanceExecutor;
-        metaVesT = MetaVesT(_metaVesT);
-        metaVesTController = MetaVesTController(_metaVesTController);
+        metaVesTController = MetaVesTController(_metaVestController);
+        metaVesT = MetaVesT(metaVesTController.metavest());
     }
 
     function addApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {

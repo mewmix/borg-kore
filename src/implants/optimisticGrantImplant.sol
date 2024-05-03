@@ -31,9 +31,9 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
 
     mapping(address => approvedGrantToken) public approvedGrantTokens;
 
-    constructor(BorgAuth _auth, address _borgSafe, address _metaVest, address _metaVestController) BaseImplant(_auth, _borgSafe) {
-        metaVesT = MetaVesT(_metaVest);
+    constructor(BorgAuth _auth, address _borgSafe, address _metaVestController) BaseImplant(_auth, _borgSafe) {
         metaVesTController = MetaVesTController(_metaVestController);
+        metaVesT = MetaVesT(metaVesTController.metavest());
     }
 
     function updateApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {
