@@ -14,6 +14,7 @@ import "./libraries/mocks/MockDAO.sol";
 import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
+import "safe-contracts/SafeL2.sol";
 
 contract GrantBorgTest is Test {
   // global contract deploys for the tests
@@ -31,6 +32,7 @@ contract GrantBorgTest is Test {
   MetaVesT metaVesT;
   MetaVesTController metaVesTController;
   FlexGovernanceAdapter governanceAdapter;
+  SafeL2 safeL2;
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
@@ -104,7 +106,7 @@ contract GrantBorgTest is Test {
 
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
-    address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element
+    address[] memory signers = new address[](1); 
     signers[0] = address(owner);
     sigCondition = new SignatureCondition(signers, 1, logic);
     vm.prank(dao);

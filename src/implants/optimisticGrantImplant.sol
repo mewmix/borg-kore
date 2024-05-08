@@ -24,6 +24,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
 
     error optimisticGrantImplant_invalidToken();
     error optimisticGrantImplant_GrantCountLimitReached();
+    error optimisticGrantImplant_GrantOverIndividualLimit();
     error optimisticGrantImplant_GrantTimeLimitReached();
     error optimisticGrantImplant_GrantSpendingLimitReached();
     error optimisticGrantImplant_CallerNotBORGMember();
@@ -36,8 +37,8 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         metaVesT = MetaVesT(metaVesTController.metavest());
     }
 
-    function updateApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {
-        approvedGrantTokens[_token] = approvedGrantToken(_spendingLimit, 0, 0);
+    function addApprovedGrantToken(address _token, uint256 _maxPerGrant, uint256 _spendingLimit) external onlyOwner {
+        approvedGrantTokens[_token] = approvedGrantToken(_spendingLimit, _maxPerGrant, 0);
     }
 
     function removeApprovedGrantToken(address _token) external onlyOwner {
@@ -57,6 +58,10 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
     function createDirectGrant(address _token, address _recipient, uint256 _amount) external {
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
+
+        if(_amount > approvedGrantTokens[_token].maxPerGrant)
+            revert optimisticGrantImplant_GrantOverIndividualLimit();
+
         if(block.timestamp >= grantTimeLimit)
             revert optimisticGrantImplant_GrantTimeLimitReached();
         
@@ -87,6 +92,10 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
 
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
+
+        if(_amount > approvedGrantTokens[_token].maxPerGrant)
+            revert optimisticGrantImplant_GrantOverIndividualLimit();
+
         if(block.timestamp >= grantTimeLimit)
             revert optimisticGrantImplant_GrantTimeLimitReached();
 
@@ -163,6 +172,9 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         }
         if(approvedToken.amountSpent + _total > approvedToken.spendingLimit)
             revert optimisticGrantImplant_GrantSpendingLimitReached();
+
+         if(_amount > approvedGrantTokens[_token].maxPerGrant)
+            revert optimisticGrantImplant_GrantOverIndividualLimit();
 
         ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
         ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails), Enum.Operation.Call);
