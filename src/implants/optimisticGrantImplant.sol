@@ -173,7 +173,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         if(approvedToken.amountSpent + _total > approvedToken.spendingLimit)
             revert optimisticGrantImplant_GrantSpendingLimitReached();
 
-         if(_amount > approvedGrantTokens[_token].maxPerGrant)
+         if(_total > approvedGrantTokens[_metaVestDetails.allocation.tokenContract].maxPerGrant)
             revert optimisticGrantImplant_GrantOverIndividualLimit();
 
         ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);

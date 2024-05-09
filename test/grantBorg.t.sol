@@ -14,7 +14,7 @@ import "./libraries/mocks/MockDAO.sol";
 import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
-import "safe-contracts/SafeL2.sol";
+
 
 contract GrantBorgTest is Test {
   // global contract deploys for the tests
@@ -32,7 +32,7 @@ contract GrantBorgTest is Test {
   MetaVesT metaVesT;
   MetaVesTController metaVesTController;
   FlexGovernanceAdapter governanceAdapter;
-  SafeL2 safeL2;
+
 
   IMultiSendCallOnly multiSendCallOnly =
     IMultiSendCallOnly(0xd34C0841a14Cd53428930D4E0b76ea2406603B00); //make sure this matches your chain
@@ -150,7 +150,7 @@ contract GrantBorgTest is Test {
   function testOpGrant() public {
 
     vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.addApprovedGrantToken(dai_addr,2 ether, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -190,7 +190,7 @@ contract GrantBorgTest is Test {
     core.addContract(address(opGrant));
 
     vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -201,7 +201,7 @@ contract GrantBorgTest is Test {
   function testFailtOpGrantTooMany() public {
 
     vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -218,7 +218,7 @@ contract GrantBorgTest is Test {
   function testFailtOpGrantTooMuch() public {
 
     vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(5, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -231,7 +231,7 @@ contract GrantBorgTest is Test {
   function testFailtOpGrantWrongToken() public {
 
     vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(6, block.timestamp +2592000); // 1 grant by march 31, 2024
@@ -349,7 +349,7 @@ contract GrantBorgTest is Test {
 
   function testSimpleGrant() public {
     vm.prank(dao);
-    opGrant.updateApprovedGrantToken(dai_addr, 2 ether);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
 
     vm.prank(dao);
     opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
