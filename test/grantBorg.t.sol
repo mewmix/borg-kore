@@ -360,6 +360,8 @@ contract GrantBorgTest is Test {
     vm.prank(owner);
     opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
     skip(10);
+    uint256 amt = metaVesT.viewWithdrawableAmount(address(jr));
+    assertGt(amt,0, "Amount should be greater than 0");
     metaVesT.refreshMetavest(jr);
     uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
     vm.prank(jr);
