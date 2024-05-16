@@ -8,6 +8,7 @@ import "../src/libs/auth.sol";
 import "./libraries/safe.t.sol";
 import "../src/implants/failSafeImplant.sol";
 import "../src/implants/optimisticGrantImplant.sol";
+import "metavest/MetaVesT.sol";
 
 contract BorgCoreTest is Test {
   // global contract deploys for the tests
@@ -33,11 +34,13 @@ contract BorgCoreTest is Test {
   address dop = 0x8082871B3Ee9c4a1644545895ad9d0321d2b463b;
   address token = 0x83824FcA8f15441812C6240e373821A84A5733Cb;
   address gxpl = 0x42069BaBe92462393FaFdc653A88F958B64EC9A3;
+  address metavest = 0xB08E5E9Db8DDe703987b7035e0f53AE8E5381F90;
   address deployerAddress;
   // Adding some tokens for the test
   ERC20 usdc;// = ERC20(usdc_addr);
   ERC20 dai;// = ERC20(dai_addr);
   ERC20 govToken;
+  MetaVesT metaVesT;
 
   /// Set our initial state: (All other tests are in isolation but share this state)
   /// 1. Set up the safe
@@ -54,6 +57,7 @@ contract BorgCoreTest is Test {
     opGrant = optimisticGrantImplant(dop);
     govToken = ERC20(token);
     vm.deal(owner, 2 ether);
+    metaVesT = MetaVesT(metavest);
 
     deployerAddress = vm.addr(vm.envUint("PRIVATE_KEY_DEPLOY"));
    // deal(address(usdc), MULTISIG, 2 ether);
@@ -70,6 +74,9 @@ contract BorgCoreTest is Test {
         opGrant.toggleBorgVote(false);
         vm.prank(gxpl);
         opGrant.createBasicGrant(token, jr, 100 ether);
+        skip(100);
+        vm.prank(jr);
+        metaVesT.withdrawAll(token);
        // executeSingle(createGrant(address(govToken), jr, 10000 ether));
     }
 

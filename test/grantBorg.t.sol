@@ -356,16 +356,66 @@ contract GrantBorgTest is Test {
 
     vm.prank(dao);
     opGrant.toggleBorgVote(false);
+
+    uint256 startTimestamp = block.timestamp;
     assertEq(address(opGrant.metaVesTController()), address(metaVesTController));
     vm.prank(owner);
     opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
-    skip(10);
-    uint256 amt = metaVesT.viewWithdrawableAmount(address(jr));
-    assertGt(amt,0, "Amount should be greater than 0");
-    metaVesT.refreshMetavest(jr);
-    uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+    skip(1000);
+   // uint256 amt = metaVesT.viewWithdrawableAmount(address(jr));
+   // assertGt(amt,0, "Amount should be greater than 0");
+    uint256 newTimestamp = startTimestamp + 1000; // 101
+    vm.warp(newTimestamp);
+   // vm.prank(jr);
+    //metaVesT.refreshMetavest(jr);
+
+   // uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+   // assertGt(amount, 0, "Amount should be greater than 0");
+   // vm.prank(jr);
     vm.prank(jr);
-    metaVesT.withdraw(dai_addr, amount);
+    metaVesT.withdraw(dai_addr, 1 ether);
+
+    uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    metaVesT.refreshMetavest(jr);
+       amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    //metaVesT.refreshMetavest(jr);
+    vm.prank(jr);
+    metaVesT.withdrawAll(dai_addr);
+  }
+
+    function testSimpleGrantAll() public {
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
+
+    vm.prank(dao);
+    opGrant.toggleBorgVote(false);
+
+    uint256 startTimestamp = block.timestamp;
+    assertEq(address(opGrant.metaVesTController()), address(metaVesTController));
+    vm.prank(owner);
+    opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
+    skip(1000);
+   // uint256 amt = metaVesT.viewWithdrawableAmount(address(jr));
+   // assertGt(amt,0, "Amount should be greater than 0");
+    uint256 newTimestamp = startTimestamp + 1000; // 101
+    vm.warp(newTimestamp);
+   // vm.prank(jr);
+    //metaVesT.refreshMetavest(jr);
+
+   // uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+   // assertGt(amount, 0, "Amount should be greater than 0");
+   // vm.prank(jr);
+
+
+    uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    vm.prank(jr);
+    metaVesT.withdrawAll(dai_addr);
   }
 
 
