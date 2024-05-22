@@ -59,7 +59,7 @@ contract TimeConditionTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1);
+    core = new borgCore(auth, 0x1, 'time-condition-test');
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element

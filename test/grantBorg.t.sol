@@ -92,7 +92,7 @@ contract GrantBorgTest is Test {
     metaVesT = MetaVesT(metaVesTController.metavest());
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1);
+    core = new borgCore(auth, 0x1, 'grant-bool-testing');
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
     opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesTController));
@@ -361,11 +361,12 @@ contract GrantBorgTest is Test {
     assertEq(address(opGrant.metaVesTController()), address(metaVesTController));
     vm.prank(owner);
     opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
-    skip(1000);
+    uint256 amount = metaVesT.viewWithdrawableAmount(jr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    skip(1);
    // uint256 amt = metaVesT.viewWithdrawableAmount(address(jr));
    // assertGt(amt,0, "Amount should be greater than 0");
-    uint256 newTimestamp = startTimestamp + 1000; // 101
-    vm.warp(newTimestamp);
+
    // vm.prank(jr);
     //metaVesT.refreshMetavest(jr);
 
@@ -375,10 +376,11 @@ contract GrantBorgTest is Test {
     vm.prank(jr);
     metaVesT.withdraw(dai_addr, 1 ether);
 
-    uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+    amount = metaVesT.viewWithdrawableAmount(jr);
     assertGt(amount, 0, "Amount should be greater than 0");
     metaVesT.refreshMetavest(jr);
-       amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+    skip(1);
+       amount = metaVesT.viewWithdrawableAmount(jr);
     assertGt(amount, 0, "Amount should be greater than 0");
     //metaVesT.refreshMetavest(jr);
     vm.prank(jr);
@@ -396,7 +398,7 @@ contract GrantBorgTest is Test {
     opGrant.toggleBorgVote(false);
 
     uint256 startTimestamp = block.timestamp;
-    assertEq(address(opGrant.metaVesTController()), address(metaVesTController));
+    //assertEq(address(opGrant.metaVesTController()), address(metaVesTController));
     vm.prank(owner);
     opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
     skip(1000);
@@ -412,11 +414,59 @@ contract GrantBorgTest is Test {
    // vm.prank(jr);
 
 
-    uint256 amount = metaVesT.getAmountWithdrawable(jr, dai_addr);
+    uint256 amount = metaVesT.viewWithdrawableAmount(jr);
     assertGt(amount, 0, "Amount should be greater than 0");
     vm.prank(jr);
     metaVesT.withdrawAll(dai_addr);
   }
+
+    function testStreamingGrant() public {
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
+
+    vm.prank(dao);
+    core.addContract(address(opGrant));
+
+    vm.prank(dao);
+    core.addContract(address(metaVesTController));
+
+    vm.prank(dao);
+    core.addContract(address(metaVesT));
+
+    vm.prank(dao);
+    core.addContract(dai_addr);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
+
+    executeSingle(getCreateBasicGrant(dai_addr, address(jr), 2 ether));
+    skip(1);
+    uint256 amount = metaVesT.viewWithdrawableAmount(jr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    skip(1);
+    amount = metaVesT.viewWithdrawableAmount(jr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    skip(1);
+    amount = metaVesT.viewWithdrawableAmount(jr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    skip(1);
+    amount = metaVesT.viewWithdrawableAmount(jr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+
+    vm.prank(jr);
+    metaVesT.withdrawAll(dai_addr);
+
+    skip(1);
+    amount = metaVesT.viewWithdrawableAmount(jr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+    skip(1);
+    amount = metaVesT.viewWithdrawableAmount(jr);
+    assertGt(amount, 0, "Amount should be greater than 0");
+
+    vm.prank(jr);
+    metaVesT.withdrawAll(dai_addr);
+
+    }
 
 
     /* TEST METHODS */
@@ -547,11 +597,11 @@ contract GrantBorgTest is Test {
                 vestingCliffCredit: 0,
                 unlockingCliffCredit: 0,
                 vestingRate: uint160(10),
-                vestingStartTime: uint48(2 ** 20),
-                vestingStopTime: uint48(2 ** 40),
+                vestingStartTime: uint48(block.timestamp),
+                vestingStopTime: uint48(block.timestamp+200),
                 unlockRate: uint160(10),
-                unlockStartTime: uint48(2 ** 20),
-                unlockStopTime: uint48(2 ** 40),
+                unlockStartTime: uint48(block.timestamp),
+                unlockStopTime: uint48(block.timestamp+200),
                 tokenContract: token
             }),
             option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
@@ -562,13 +612,13 @@ contract GrantBorgTest is Test {
             transferable: false
         });
         bytes4 addContractMethod = bytes4(
-            keccak256("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))")
+            keccak256("createAdvancedGrant((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))")
         );
         bytes memory guardData = abi.encodeWithSelector(
             addContractMethod,
             _metavestDetails
         );
-        GnosisTransaction memory txData = GnosisTransaction({to: address(metaVesTController), value: 0, data: guardData});
+        GnosisTransaction memory txData = GnosisTransaction({to: address(opGrant), value: 0, data: guardData});
         return txData;
     }
 

@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import "../libs/auth.sol";
 import "../libs/conditions/conditionManager.sol";
 
-contract BaseImplant is GlobalACL, ConditionManager {
+contract BaseImplant is BorgAuthACL, ConditionManager {
 
   address public immutable BORG_SAFE;
 

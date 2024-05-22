@@ -58,7 +58,7 @@ contract PBVBorgTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1);
+    core = new borgCore(auth, 0x1, 'pbv-borg-testing');
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));
 

@@ -66,13 +66,13 @@ contract BorgAuth {
     }
 }
 
-abstract contract GlobalACL {
+abstract contract BorgAuthACL {
     BorgAuth public immutable AUTH;
 
-    error GlobalACL_ZeroAddress();
+    error BorgAuthACL_ZeroAddress();
 
     constructor(BorgAuth _auth) {
-        if(address(_auth) == address(0)) revert GlobalACL_ZeroAddress();
+        if(address(_auth) == address(0)) revert BorgAuthACL_ZeroAddress();
         AUTH = _auth;
     }
 

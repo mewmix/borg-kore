@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import "../../interfaces/ICondition.sol";
 import "../auth.sol";
 
-contract ConditionManager is GlobalACL {
+contract ConditionManager is BorgAuthACL {
     enum Logic {
         AND,
         OR
@@ -24,7 +24,7 @@ contract ConditionManager is GlobalACL {
     event ConditionAdded(Condition);
     event ConditionRemoved(Condition);
 
-    constructor(BorgAuth _auth) GlobalACL(_auth) {}
+    constructor(BorgAuth _auth) BorgAuthACL(_auth) {}
 
     /// @notice allows owner to add a Condition
     /// @param _op Logic enum, either 'AND' (all conditions must be true) or 'OR' (only one of the conditions must be true)

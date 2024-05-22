@@ -33,7 +33,7 @@ contract FailSafeImplantTest is Test {
         safe = IGnosisSafe(0xee1927e3Dbba7f261806e3B39FDE9aFacaA8cde7);
         vm.prank(dao);
         auth = new BorgAuth();
-        core = new borgCore(auth, 0x1);
+        core = new borgCore(auth, 0x1, 'fail-safe-testing');
         dai = ERC20(dai_addr);
 
         failSafe = new failSafeImplant(auth, MULTISIG, recoveryAddress); // this simulates the BORG_SAFE

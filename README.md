@@ -14,7 +14,7 @@ These contracts are installed into a Gnosis SAFE multisig to allow the members t
 
 ## Components
 
-### BORG Auth / GlobalACL `auth.sol`
+### BORG Auth / BorgAuthACL `auth.sol`
 
 Multi-permission level access control contract inhereted in all borg contracts. The DAO or an approvaed AuthorityBORG should remain 1 level higher than the BORG members for oversight and controls. Adapatable interface to assign other ACL contracts a role within BORG Auth.
 

@@ -8,7 +8,7 @@ import "openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "forge-std/interfaces/IERC20.sol";
 import "../../../src/libs/auth.sol";
 
-contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
+contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, BorgAuthACL {
     struct ProposalThresholds {
         uint256 quorum;
         uint256 threshold;
@@ -19,7 +19,7 @@ contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, GlobalACL {
     mapping(uint256 => ProposalThresholds) public proposalThresholds;
     mapping(uint256 => ProposalVote) public _proposalVotes;
 
-    constructor(IVotes _token, BorgAuth _auth) GlobalACL(_auth)
+    constructor(IVotes _token, BorgAuth _auth) BorgAuthACL(_auth)
         Governor("CustomGovernor")
         GovernorVotes(_token)
         GovernorCountingSimple()

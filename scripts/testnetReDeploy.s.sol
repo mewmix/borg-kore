@@ -59,7 +59,7 @@ contract BaseScript is Script {
             metaVesT = new MetaVesT(MULTISIG, controllerAddr, MULTISIG, address(govToken));
 
             safe = IGnosisSafe(MULTISIG);
-            core = new borgCore(auth, 0x1);
+            core = new borgCore(auth, 0x1, 'test-net-deploy-borg');
             failSafe = new failSafeImplant(auth, address(safe), address(this));
             eject = new ejectImplant(auth, MULTISIG, address(failSafe));
             opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesT), address(metaVesTController));

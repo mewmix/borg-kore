@@ -46,7 +46,7 @@ contract EjectTest is Test {
     vm.prank(dao);
     auth = new BorgAuth();
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1);
+    core = new borgCore(auth, 0x1, 'eject-testing');
     
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe));

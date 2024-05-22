@@ -20,7 +20,7 @@ import "./interfaces/IERC4824.sol";
 /**
  * @title      BorgCore
  **/
-contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
+contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     enum ParamType { UINT, ADDRESS, STRING, BYTES, BOOL, INT }
 
     struct ParamConstraint {
@@ -71,19 +71,19 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     mapping(address => PolicyItem) public policy;
 
     /// Events
-    event PolicyUpdated(address indexed contractAddress, string methodName, uint256 minValue, uint256 maxValue, bytes exactMatch, uint256 byteOffset, uint256 byteLength);
-    event PolicyCleared(address indexed contractAddress);
-    event PolicyRemoved(address indexed contractAddress, string methodName);
     event RecipientAdded(address indexed recipient, uint256 transactionLimit);
     event RecipientRemoved(address indexed recipient);
     event ContractAdded(address indexed contractAddress);
     event ContractRemoved(address indexed contractAddress);
-    event ParameterConstraintAdded(address indexed contractAddress, string methodName, uint8 paramIndex, ParamType paramType, uint256 minValue, uint256 maxValue, bytes exactMatch, uint256 byteOffset, uint256 byteLength);
+    event MethodCooldownUpdated(address indexed contractAddress, string methodName, uint256 newCooldown);
+    event ParameterConstraintAdded(address indexed contractAddress, string methodName, uint8 paramIndex, ParamType paramType, uint256 minValue, uint256 maxValue, bytes32[] exactMatch, uint256 byteOffset, uint256 byteLength);
     event ParameterConstraintRemoved(address indexed contractAddress, string methodName, uint8 paramIndex);
     event DaoUriUpdated(string newDaoUri);
     event LegalAgreementAdded(string agreement);
     event LegalAgreementRemoved(string agreement);
     event IdentifierUpdated(string newId);
+    event NativeCooldownUpdated(uint256 newCooldown);
+
 
     /// Errors
     error BORG_CORE_InvalidRecipient();
@@ -99,8 +99,9 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
 
     /// Constructor
     /// @param _auth Address, ideally an oversight multisig or other safeguard.
-    constructor(BorgAuth _auth, uint256 _borgType) GlobalACL(_auth) {
+    constructor(BorgAuth _auth, uint256 _borgType, string memory _identifier) BorgAuthACL(_auth) {
         borgType = _borgType;
+        id = _identifier;
     }
 
     /// checkTransaction
@@ -168,23 +169,27 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     /// @dev add recipient address and transaction limit to the whitelist
     function addRecipient(address _recipient, uint256 _transactionLimit) external onlyOwner {
         whitelistedRecipients[_recipient] = Recipient(true, _transactionLimit);
+        emit RecipientAdded(_recipient, _transactionLimit);
     }
 
     /// @dev remove recipient address from the whitelist
     function removeRecipient(address _recipient) external onlyOwner {
         whitelistedRecipients[_recipient] = Recipient(false, 0);
+        emit RecipientRemoved(_recipient);
     }
 
     /// @dev add contract address and transaction limit to the whitelist
     function addContract(address _contract) external onlyOwner {
        policy[_contract].allowed = true;
        policy[_contract].fullAccess = true;
+       emit ContractAdded(_contract);
     }
 
     /// @dev remove contract address from the whitelist
     function removeContract(address _contract) external onlyOwner {
        policy[_contract].allowed = false;
        policy[_contract].fullAccess = false;
+       emit ContractRemoved(_contract);
     }
 
     /// @dev to maintain erc165 compatiblity for the Gnosis Safe Guard Manager
@@ -199,6 +204,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
             address contractAddress = _contracts[i];
             policy[contractAddress].allowed = true;
             policy[contractAddress].fullAccess = true;
+            emit ContractAdded(contractAddress);
         }
     }
 
@@ -247,12 +253,6 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
              ++i; // cannot overflow without hitting gaslimit
             }
         }
-    }
-
-    //clear policy
-    function clearPolicy(address _contract) public onlyOwner {
-        policy[_contract].allowed = false;
-        policy[_contract].fullAccess = false;
     }
 
     // Add identifier string
@@ -329,6 +329,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
     function updateNativeCooldown(uint256 _cooldownPeriod) public onlyOwner {
         nativeCooldown = _cooldownPeriod;
         lastNativeExecutionTimestamp = block.timestamp;
+        emit NativeCooldownUpdated(_cooldownPeriod);
     }
 
     function updateMethodCooldown(
@@ -342,6 +343,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
         //Set allowances
         policy[_contract].methods[methodSelector].allowed = true;
         policy[_contract].allowed = true;
+        emit MethodCooldownUpdated(_contract, _methodSignature, _cooldownPeriod);
     }
 
     function removeParameterConstraint(
@@ -361,7 +363,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
                 break;
             }
         }
-        //update the currentConstraints counter
+        emit ParameterConstraintRemoved(_contract, _methodSignature, uint8(_byteOffset));
     }
 
     // Adjusted function to check if a method call is allowed using abi.decode
@@ -410,7 +412,6 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
              ++i; // cannot overflow without hitting gaslimit
             }
         }
-
         return true;
     }
 
@@ -446,7 +447,7 @@ contract borgCore is BaseGuard, GlobalACL, IEIP4824 {
         policy[_contract].methods[methodSelector].allowed = true;
         //update the offsets array
         policy[_contract].methods[methodSelector].paramOffsets.push(_byteOffset);
-
+        emit ParameterConstraintAdded(_contract, _methodSignature, uint8(_byteOffset), _paramType, _minValue, _maxValue, _exactMatch, _byteOffset, _byteLength);
     }
 
     // Cooldown check
