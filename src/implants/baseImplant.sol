@@ -7,6 +7,7 @@ import "../libs/conditions/conditionManager.sol";
 contract BaseImplant is BorgAuthACL, ConditionManager {
 
   address public immutable BORG_SAFE;
+  string public constant VERSION = "1.0.0";
 
   constructor(BorgAuth _auth, address _borgSafe) ConditionManager(_auth)
   {

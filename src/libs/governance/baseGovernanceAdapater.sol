@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 abstract contract BaseGovernanceAdapter {
+    string public constant VERSION = "1.0.0";
     function createProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description, uint256 quorum, uint256 threshold,  uint256 duration) public virtual returns (uint256);
     function executeProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public virtual returns (uint256);
     function cancelProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public virtual returns (uint256);

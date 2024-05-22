@@ -39,6 +39,8 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
     error daoVoteGrantImplant_GrantCountLimitReached();
     error daoVoteGrantImplant_GrantTimeLimitReached();
     error daoVoteGrantImplant_invalidToken();
+    error daoVoteGrantImplant_ApprovalFailed();
+    error daoVoteGrantImplant_GrantFailed();
 
 
     constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, address _governanceAdapter, address _governanceExecutor, address _metaVestController) BaseImplant(_auth, _borgSafe) {
@@ -176,16 +178,18 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
 
         if(_token==address(0))
-            ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call);
+            if(!ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call))
+                revert daoVoteGrantImplant_GrantFailed();
         else
-            ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
+            if(!ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call))
+                revert daoVoteGrantImplant_GrantFailed();
     }
 
 
     function executeSimpleGrant(address _token, address _recipient, uint256 _amount) external {
 
         if(governanceExecutor != msg.sender)
-        revert daoVoteGrantImplant_CallerNotGovernance();
+            revert daoVoteGrantImplant_CallerNotGovernance();
 
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
@@ -203,7 +207,7 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
                 unlockedTokensWithdrawn: 0,
                 vestingCliffCredit: uint128(_amount),
                 unlockingCliffCredit: uint128(_amount),
-                vestingRate: 0,
+                vestingRate: 1,
                 vestingStartTime: 0,
                 vestingStopTime: 1,
                 unlockRate: 1,
@@ -219,15 +223,16 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
             transferable: false
         });
         //approve metaVest to spend the amount
-        ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call);
-  
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call))
+            revert daoVoteGrantImplant_ApprovalFailed();
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call))
+            revert daoVoteGrantImplant_GrantFailed();
     }
 
     function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metavestDetails) external {
 
         if(governanceExecutor != msg.sender)
-        revert daoVoteGrantImplant_CallerNotGovernance();
+            revert daoVoteGrantImplant_CallerNotGovernance();
 
          //cycle through any allocations and approve the metavest to spend the amount
         uint256 _milestoneTotal;
@@ -237,8 +242,12 @@ contract daoVoteGrantImplant is BaseImplant { //is baseImplant
         uint256 _total = _metavestDetails.allocation.tokenStreamTotal +
             _milestoneTotal;
 
-        ISafe(BORG_SAFE).execTransactionFromModule(_metavestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call);
+        //approve metaVest to spend the amount
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(_metavestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call))
+            revert daoVoteGrantImplant_ApprovalFailed();
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call))
+            revert daoVoteGrantImplant_GrantFailed();   
+            
     }
 
     function getProposalDetails(uint256 _proposalId) external view returns (proposalDetail memory) {

@@ -29,6 +29,8 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
     error optimisticGrantImplant_GrantSpendingLimitReached();
     error optimisticGrantImplant_CallerNotBORGMember();
     error optimisticGrantImplant_CallerNotBORG();
+    error optimisticGrantImplant_ApprovalFailed();
+    error optimisticGrantImplant_GrantFailed();
 
     mapping(address => approvedGrantToken) public approvedGrantTokens;
 
@@ -80,12 +82,16 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         }
         if(approvedToken.amountSpent + _amount > approvedToken.spendingLimit)
             revert optimisticGrantImplant_GrantSpendingLimitReached();
+        
+        if(_token==address(0))
+            if(!ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call))
+                revert optimisticGrantImplant_GrantFailed();
+        else
+            if(!ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call))
+                revert optimisticGrantImplant_GrantFailed();
+
         approvedToken.amountSpent += _amount;
         currentGrantCount++;
-        if(_token==address(0))
-            ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call);
-        else
-            ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
     }
 
     function createBasicGrant(address _token, address _recipient, uint256 _amount) external {
@@ -121,12 +127,12 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
                 unlockedTokensWithdrawn: 0,
                 vestingCliffCredit: uint128(_amount),
                 unlockingCliffCredit: uint128(_amount),
-                vestingRate: 0,
-                vestingStartTime: 0,
-                vestingStopTime: 1,
+                vestingRate: 1,
+                vestingStartTime: uint48(block.timestamp),
+                vestingStopTime: uint48(block.timestamp+1),
                 unlockRate: 1,
-                unlockStartTime: 0,
-                unlockStopTime: 1,
+                unlockStartTime: uint48(block.timestamp),
+                unlockStopTime: uint48(block.timestamp+1),
                 tokenContract: _token
             }),
             option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
@@ -136,10 +142,22 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
             milestones: emptyMilestones,
             transferable: false
         });
+
+        approvedGrantToken storage approvedToken = approvedGrantTokens[_token];
+        if (approvedToken.spendingLimit == 0) {
+            revert optimisticGrantImplant_invalidToken();
+        }
+        if(approvedToken.amountSpent + _amount > approvedToken.spendingLimit)
+            revert optimisticGrantImplant_GrantSpendingLimitReached();
         
         //approve metaVest to spend the amount
-        ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call);
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call))
+            revert optimisticGrantImplant_ApprovalFailed();
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call))
+            revert optimisticGrantImplant_GrantFailed();
+
+        approvedToken.amountSpent += _amount;
+        currentGrantCount++;
     }
 
      function createAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
@@ -173,10 +191,15 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
         if(approvedToken.amountSpent + _total > approvedToken.spendingLimit)
             revert optimisticGrantImplant_GrantSpendingLimitReached();
 
-         if(_total > approvedGrantTokens[_metaVestDetails.allocation.tokenContract].maxPerGrant)
+        if(_total > approvedGrantTokens[_metaVestDetails.allocation.tokenContract].maxPerGrant)
             revert optimisticGrantImplant_GrantOverIndividualLimit();
 
-        ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails), Enum.Operation.Call);
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call))
+            revert optimisticGrantImplant_ApprovalFailed();
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails), Enum.Operation.Call))
+            revert optimisticGrantImplant_GrantFailed();
+        
+        approvedToken.amountSpent += _total;
+        currentGrantCount++;
       }
 }

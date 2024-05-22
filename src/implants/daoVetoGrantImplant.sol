@@ -44,9 +44,12 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     error daoVetoGrantImplant_GrantSpendingLimitReached();
     error daoVetoGrantImplant_CallerNotGovernance();
     error daoVetoGrantImplant_InvalidToken();
+    error daoVetoGrantImplant_ProposalWaitingPeriodActive();
     error daoVetoGrantImplant_ProposalNotReady();
     error daoVetoGrantImplant_ProposalExecutionError();
     error daoVetoGrantImplant_ProposalNotFound();
+    error daoVetoGrantImplant_ApprovalFailed();
+    error daoVetoGrantImplant_GrantFailed();
 
     Proposal[] public currentProposals;
     mapping(uint256 => prop) public vetoProposals;
@@ -137,6 +140,10 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     function proposeDirectGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 proposalId, uint256 _newProposalId) {
         //Set ID to 0 incase there is a failure in the GovernanceAdapter
         proposalId = 0;
+        _newProposalId = 0;
+
+        if(lastProposalTime + waitingPeriod > block.timestamp)
+            revert daoVetoGrantImplant_ProposalWaitingPeriodActive();
 
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount || approvedGrantTokens[_token] < _amount)
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
@@ -172,11 +179,16 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
             vetoProposals[proposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
         }
-       
+       lastProposalTime = block.timestamp;
     }
 
     function proposeSimpleGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 proposalId, uint256 _newProposalId) {
         proposalId = 0;
+        _newProposalId = 0;
+
+        if(lastProposalTime + waitingPeriod > block.timestamp)
+            revert daoVetoGrantImplant_ProposalWaitingPeriodActive();
+
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount || approvedGrantTokens[_token] < _amount)
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
 
@@ -211,10 +223,17 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
             vetoProposals[proposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
         }
+
+        lastProposalTime = block.timestamp;
     }
 
     function proposeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails, string memory _desc) external returns (uint256 proposalId, uint256 _newProposalId) {
         proposalId = 0;
+        _newProposalId = 0;
+        
+        if(lastProposalTime + waitingPeriod > block.timestamp)
+            revert daoVetoGrantImplant_ProposalWaitingPeriodActive();
+
         uint256 _milestoneTotal;
         for (uint256 i; i < _metaVestDetails.milestones.length; ++i) {
             _milestoneTotal += _metaVestDetails.milestones[i].milestoneAward;
@@ -256,6 +275,8 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
             vetoProposals[proposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
         }
+
+        lastProposalTime = block.timestamp;
     }
 
     function executeDirectGrant(address _token, address _recipient, uint256 _amount) internal {
@@ -287,7 +308,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
                 unlockedTokensWithdrawn: 0,
                 vestingCliffCredit: uint128(_amount),
                 unlockingCliffCredit: uint128(_amount),
-                vestingRate: 0,
+                vestingRate: 1,
                 vestingStartTime: 0,
                 vestingStopTime: 1,
                 unlockRate: 1,
