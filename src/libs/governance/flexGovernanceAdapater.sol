@@ -2,39 +2,78 @@
 pragma solidity 0.8.20;
 
 import "./baseGovernanceAdapater.sol";
-import "../../interfaces/IMockDAO.sol";
+import "../../interfaces/IFlexGov.sol";
+import "../auth.sol";
 
-contract FlexGovernanceAdapter is BaseGovernanceAdapter {
+/// @title FlexGovernanceAdapter
+/// @notice Governance adapter for the Flexa DAO
+contract FlexGovernanceAdapter is BaseGovernanceAdapter, BorgAuthACL {
+    /// @notice Address of the governor contract
     address public governorContract;
 
-     constructor(address _goverernorContract) {
+    /// @param _goverernorContract Address of the governor contract
+     constructor(BorgAuth _auth, address _goverernorContract) BorgAuthACL(_auth) {
         governorContract = _goverernorContract;
      }
 
-    function updateGovernorContract(address _goverernorContract) public {
+    /// @notice Update the governor contract address
+    /// @param _goverernorContract Address of the governor contract
+    function updateGovernorContract(address _goverernorContract) public onlyAdmin() {
         governorContract = _goverernorContract;
     }
 
+    /// @notice Create a proposal in the governor contract with quorum, threshold and duration
+    /// @param targets Array of contract addresses to call
+    /// @param values Array of values to pass to the contracts
+    /// @param calldatas Array of calldatas to pass to the contracts
+    /// @param description Description of the proposal
+    /// @param quorum Minimum quorum required for the proposal to pass
+    /// @param threshold Minimum threshold required for the proposal to pass
+    /// @param duration Duration of the proposal
+    /// @return proposalId ID of the proposal
     function createProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description, uint256 quorum, uint256 threshold, uint256 duration) public override returns (uint256 proposalId) {
-        return IMockDAO(governorContract).proposeWithThresholds(targets, values, calldatas, description, quorum, threshold, duration);
+        return IFlexGov(governorContract).proposeWithThresholds(targets, values, calldatas, description, quorum, threshold, duration);
     }
 
+    /// @notice Execute a proposal in the governor contract
+    /// @param targets Array of contract addresses to call
+    /// @param values Array of values to pass to the contracts
+    /// @param calldatas Array of calldatas to pass to the contracts
+    /// @param descriptionHash Hash of the description of the proposal
+    /// @param id ID of the proposal
+    /// @return proposalId ID of the proposal
     function executeProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override returns (uint256) {
-        return IMockDAO(governorContract).execute(targets, values, calldatas, descriptionHash);
+        return IFlexGov(governorContract).execute(targets, values, calldatas, descriptionHash);
     }
 
+    /// @notice Cancel a proposal in the governor contract
+    /// @param targets Array of contract addresses to call
+    /// @param values Array of values to pass to the contracts
+    /// @param calldatas Array of calldatas to pass to the contracts
+    /// @param descriptionHash Hash of the description of the proposal
+    /// @param id ID of the proposal
+    /// @return proposalId ID of the proposal
     function cancelProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override returns (uint256) {
-        return IMockDAO(governorContract).cancel(targets, values, calldatas, descriptionHash);
+        return IFlexGov(governorContract).cancel(targets, values, calldatas, descriptionHash);
     }
 
+    /// @notice Vote on a proposal in the governor contract
+    /// @param proposalId ID of the proposal
+    /// @param support Support value for the vote
+    /// @return proposalId ID of the proposal
     function vote(uint256 proposalId, uint8 support) public override returns(uint256) {
-        return IMockDAO(governorContract).castVote(proposalId, support);
+        return IFlexGov(governorContract).castVote(proposalId, support);
     }
 
+    /// @notice Get the votes for a proposal in the governor contract
+    /// @param proposalId ID of the proposal
+    /// @return forVotes Votes in favor of the proposal
+    /// @return againstVotes Votes against the proposal
+    /// @return abstainVotes Abstain votes for the proposal
     function getVotes(uint256 proposalId) public override returns(uint256 forVotes, uint256 againstVotes, uint256 abstainVotes) {
-        forVotes = IMockDAO(governorContract).getSupportVotes(proposalId);
-        againstVotes = IMockDAO(governorContract).getAgainstVotes(proposalId);
-        abstainVotes = IMockDAO(governorContract).getAbstainVotes(proposalId);
+        forVotes = IFlexGov(governorContract).getSupportVotes(proposalId);
+        againstVotes = IFlexGov(governorContract).getAgainstVotes(proposalId);
+        abstainVotes = IFlexGov(governorContract).getAbstainVotes(proposalId);
         return (forVotes, againstVotes, abstainVotes);
     }
 

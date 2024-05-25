@@ -19,56 +19,66 @@ import "./interfaces/IERC4824.sol";
 
 /**
  * @title      BorgCore
+ *
+ * @notice     The BorgCore contract is a Gnosis Safe Guard that acts as a whitelist for recipients and contracts. It allows for the
+ *             whitelisting of recipients and contracts, and the setting of transaction limits for recipients. It also allows for the
+ *             setting of cooldown periods for native gas transfers and contract method calls. The contract also allows for the setting of
+ *             parameter constraints for contract method calls, which can be used to restrict the values of parameters passed to a method.
+ *
+ * @dev        The BorgAuth contract is used to manage the access control for the BorgCore contract. The contract implements the Guard
+ *             interface, which is used by the Gnosis Safe to check transactions before they are executed. The contract also implements
+ *             the IEIP4824 interface, which is used to provide a URI for the DAO.
  **/
 contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
+
+    /// Structs
     enum ParamType { UINT, ADDRESS, STRING, BYTES, BOOL, INT }
 
-    struct ParamConstraint {
-        bool exists;
-        ParamType paramType;
-        uint256 minValue;
-        uint256 maxValue;
-        int256 iminValue;
-        int256 imaxValue;
-        bytes32[] exactMatch; 
-        uint256 byteLength;
-    }
-
     struct MethodConstraint {
-        bool allowed;
-        mapping(uint256 => ParamConstraint) parameterConstraints; //offset used as key
-        uint256 cooldownPeriod;
-        uint256 lastExecutionTimestamp;
-        address adapterCheck;
-        uint256[] paramOffsets;
+        bool allowed; // flag to check if the method is allowed
+        mapping(uint256 => ParamConstraint) parameterConstraints; //byte offset used as key for parameter constraints
+        uint256 cooldownPeriod; // cooldown period for the method
+        uint256 lastExecutionTimestamp; // timestamp of the last execution
+        address adapterCheck; // address of the adapter to check / future proofing custom checks, unused for now
+        uint256[] paramOffsets; // array of byte offsets for the parameters
     }
     
     struct PolicyItem {
-        bool allowed;
-        bool fullAccess;
-        mapping(bytes4 => MethodConstraint) methods;
+        bool allowed; // flag to check if the contract is allowed
+        bool fullAccess; // flag to check if the contract has full access
+        mapping(bytes4 => MethodConstraint) methods; // mapping of method signatures to a method constraint struct
     }
 
-    /// Whitelist Structs
     struct Recipient {
-        bool approved;
-        uint256 transactionLimit;
+        bool approved; // flag to check if the recipient is approved
+        uint256 transactionLimit; // transaction limit for the recipient
     }
 
-    uint256 public nativeCooldown = 0;
-    uint256 public lastNativeExecutionTimestamp = 0;
+    struct ParamConstraint {
+        bool exists;  // flag to check if the constraint exists for a param
+        ParamType paramType; // type of the parameter
+        uint256 minValue; // minimum value for uint256 range
+        uint256 maxValue;   // maximum value for uint256 range
+        int256 iminValue; // minimum value for int256 range
+        int256 imaxValue;  // maximum value for int256 range
+        bytes32[] exactMatch; // array of exact match values for address, string, bytes allowed for a parameter
+        uint256 byteLength; // length of the parameter in bytes
+    }
+
+    uint256 public nativeCooldown = 0; // cooldown period for native gas transfers
+    uint256 public lastNativeExecutionTimestamp = 0; // timestamp of the last native gas transfer
 
     /// Identifiers
-    string public id = "unnamed-borg-core";
-    string private _daoUri;
-    string[] public legalAgreements;
-    string public constant VERSION = "0.0.1";
-    uint256 public immutable borgType;
-    bool unrestrictedMode = false;
+    string public id = "unnamed-borg-core"; // identifier for the BORG
+    string private _daoUri; // URI for the DAO
+    string[] public legalAgreements; // array of legal agreements URIs for this BORG
+    string public constant VERSION = "1.0.0"; // contract version
+    uint256 public immutable borgType; // type of the BORG
+    bool unrestrictedMode = false; // flag to enable unrestricted mode for the BORG, only advisable for minimal BORG types/conditions
 
     /// Whitelist Mappings
-    mapping(address => Recipient) public whitelistedRecipients;
-    mapping(address => PolicyItem) public policy;
+    mapping(address => Recipient) public whitelistedRecipients; // mapping of recipient addresses to recipient structs
+    mapping(address => PolicyItem) public policy; // mapping of contract addresses to whitelist policy items
 
     /// Events
     event RecipientAdded(address indexed recipient, uint256 transactionLimit);
@@ -98,7 +108,10 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     error BORG_CORE_InvalidDocumentIndex();
 
     /// Constructor
-    /// @param _auth Address, ideally an oversight multisig or other safeguard.
+    /// @param _auth Address, BorgAuth contract address
+    /// @param _borgType uint256, the type of the BORG
+    /// @param _identifier string, the identifier for the BORG
+    /// @dev The constructor sets the BORG type and identifier for the BORG and adds the oversight contract.
     constructor(BorgAuth _auth, uint256 _borgType, string memory _identifier) BorgAuthACL(_auth) {
         borgType = _borgType;
         id = _identifier;
@@ -157,6 +170,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
          }
     }
 
+    /// @dev This is a function to enable unrestricted mode for the BORG, only advisable for minimal BORG types/conditions
     function changeUnrestrictedMode(bool _mode) external onlyOwner {
         unrestrictedMode = _mode;
     }
@@ -199,6 +213,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
             interfaceId == type(IERC165).interfaceId; 
     }
 
+    /// @dev bulk add contracts to the whitelist with full access
     function updatePolicy(address[] memory _contracts) public onlyOwner {
         for (uint256 i = 0; i < _contracts.length; i++) {
             address contractAddress = _contracts[i];
@@ -208,6 +223,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         }
     }
 
+    /// @dev bulk add contracts to the whitelist with method/parameter constraints
     function updatePolicy(address[] memory _contracts, string[] memory _methodNames, uint256[] memory _minValues, ParamType[] memory _paramTypes, uint256[] memory _maxValues, bytes32[] memory _exactMatches, uint256[] memory matchNum, uint256[] memory _byteOffsets, uint256[] memory _byteLengths) public onlyOwner {
         
         if (_contracts.length != _methodNames.length ||
@@ -255,19 +271,22 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         }
     }
 
-    // Add identifier string
+    /// @dev Function to set the identifier for the BORG
+    /// @param _id string, the identifier for the BORG
     function setIdentifier(string memory _id) public onlyAdmin {
         id = _id;
         emit IdentifierUpdated(_id);
     }
 
-    // Add legal agreement
+    /// @dev Function to add a legal agreement
+    /// @param _agreement string, the URI of the legal agreement
     function addLegalAgreement(string memory _agreement) public onlyAdmin {
         legalAgreements.push(_agreement);
         emit LegalAgreementAdded(_agreement);
     }
 
-    //remove legal agreement
+    /// @dev Function to remove a legal agreement
+    /// @param _index uint256, the index of the legal agreement to remove
     function removeLegalAgreement(uint256 _index) public onlyAdmin {
         if(_index > legalAgreements.length) revert BORG_CORE_InvalidDocumentIndex();
         string memory _removedAgreement = legalAgreements[_index];
@@ -276,17 +295,27 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         emit LegalAgreementRemoved(_removedAgreement);
     }
 
-    
+    /// @dev Function to get the DAO URI
+    /// @return string, the URI of the DAO
     function daoURI() public view override returns (string memory) {
         return _daoUri;
     }
 
+    /// @dev Function to set the DAO URI
+    /// @param newDaoUri string, the new URI for the DAO
     function setDaoURI(string memory newDaoUri) public onlyAdmin {
         _daoUri = newDaoUri;
         emit DaoUriUpdated(newDaoUri);
     }
 
-    // Function to add a parameter constraint for uint256 with range
+    /// @dev Function to add a parameter constraint for int256 with range
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
+    /// @param _paramType ParamType, the type of the parameter
+    /// @param _iminValue int256, the minimum value for the range
+    /// @param _imaxValue int256, the maximum value for the range
+    /// @param _byteOffset uint256, the byte offset of the parameter
+    /// @param _byteLength uint8, the length of the parameter in bytes
     function addSignedRangeParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -300,7 +329,14 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         _addParameterConstraint(_contract, _methodSignature, _paramType, 0, 0, _iminValue, _imaxValue, exactMatch, _byteOffset, _byteLength);
     }
 
-    // Function to add a parameter constraint for uint256 with range
+    /// @dev Function to add a parameter constraint for uint256 with range
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
+    /// @param _paramType ParamType, the type of the parameter
+    /// @param _uminValue uint256, the minimum value for the range
+    /// @param _umaxValue uint256, the maximum value for the range
+    /// @param _byteOffset uint256, the byte offset of the parameter
+    /// @param _byteLength uint8, the length of the parameter in bytes
     function addUnsignedRangeParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -314,7 +350,13 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         _addParameterConstraint(_contract, _methodSignature, _paramType, _uminValue, _umaxValue, 0, 0, exactMatch, _byteOffset, _byteLength);
     }
 
-    // Function to add a parameter constraint for exact match (address, string, bytes)
+    /// @dev Function to add a parameter constraint for address, string, or bytes with exact match
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
+    /// @param _paramType ParamType, the type of the parameter
+    /// @param _exactMatch bytes32[], an arry of possible exact match values for the parameter
+    /// @param _byteOffset uint256, the byte offset of the parameter
+    /// @param _byteLength uint8, the length of the parameter in bytes
     function addExactMatchParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -326,12 +368,18 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         _addParameterConstraint(_contract, _methodSignature, _paramType,  0, 0, 0, 0, _exactMatch, _byteOffset, _byteLength);
     }
 
+    /// @dev Function to update the cooldown period for native gas transfers
+    /// @param _cooldownPeriod uint256, the new cooldown period. 0 for no cooldown.
     function updateNativeCooldown(uint256 _cooldownPeriod) public onlyOwner {
         nativeCooldown = _cooldownPeriod;
         lastNativeExecutionTimestamp = block.timestamp;
         emit NativeCooldownUpdated(_cooldownPeriod);
     }
 
+    /// @dev Function to update the cooldown period for a contract method
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
+    /// @param _cooldownPeriod uint256, the new cooldown period. 0 for no cooldown.
     function updateMethodCooldown(
         address _contract,
         string memory _methodSignature,
@@ -346,6 +394,10 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         emit MethodCooldownUpdated(_contract, _methodSignature, _cooldownPeriod);
     }
 
+    /// @dev Function to remove a parameter constraint for a contract method
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
+    /// @param _byteOffset uint256, the byte offset of the parameter
     function removeParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -366,7 +418,10 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         emit ParameterConstraintRemoved(_contract, _methodSignature, uint8(_byteOffset));
     }
 
-    // Adjusted function to check if a method call is allowed using abi.decode
+    /// @dev Function to check if a contract method call is allowed
+    /// @param _contract address, the address of the contract
+    /// @param _methodCallData bytes, the data of the method call
+    /// @return bool, true if the method call is allowed
     function isMethodCallAllowed(
         address _contract,
         bytes calldata _methodCallData
@@ -415,7 +470,17 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         return true;
     }
 
-    // Internal function to add a parameter constraint
+    /// @dev Function to add a parameter constraint for a contract method
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
+    /// @param _paramType ParamType, the type of the parameter
+    /// @param _minValue uint256, the minimum value for the parameter
+    /// @param _maxValue uint256, the maximum value for the parameter
+    /// @param _iminValue int256, the minimum value for the parameter
+    /// @param _imaxValue int256, the maximum value for the parameter
+    /// @param _exactMatch bytes32[], an array of exact match values for the parameter
+    /// @param _byteOffset uint256, the byte offset of the parameter
+    /// @param _byteLength uint256, the length of the parameter in bytes
     function _addParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -450,7 +515,10 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         emit ParameterConstraintAdded(_contract, _methodSignature, uint8(_byteOffset), _paramType, _minValue, _maxValue, _exactMatch, _byteOffset, _byteLength);
     }
 
-    // Cooldown check
+    /// @dev Interanl function to check the cooldown period for a contract method
+    /// @param _contract address, the address of the contract
+    /// @param _methodSelector bytes4, the selector of the method
+    /// @return bool, true if the cooldown period has passed
     function _checkCooldown(address _contract, bytes4 _methodSelector) internal returns (bool) {
         MethodConstraint storage methodConstraint = policy[_contract].methods[_methodSelector];
         if (methodConstraint.cooldownPeriod == 0) {
@@ -462,6 +530,8 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         return true;
     }
 
+    /// @dev Internal function to check the cooldown period for native gas transfers
+    /// @return bool, true if the cooldown period has passed
     function _checkNativeCooldown() internal returns (bool) {
         if (nativeCooldown == 0) {
             return true;

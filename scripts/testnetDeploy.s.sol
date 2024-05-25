@@ -10,7 +10,7 @@ import "../src/implants/daoVetoGrantImplant.sol";
 import "../src/libs/conditions/signatureCondition.sol";
 import "../src/implants/failSafeImplant.sol";
 import "../test/libraries/mocks/MockGovToken.sol";
-import "../test/libraries/mocks/MockDAO.sol";
+import "../test/libraries/mocks/FlexGov.sol";
 import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
@@ -32,7 +32,7 @@ contract BaseScript is Script {
   SignatureCondition sigCondition;
   failSafeImplant failSafe;
   MockERC20Votes govToken;
-  MockDAO mockDao;
+  FlexGov mockDao;
   MetaVesT metaVesT;
   MetaVesTController metaVesTController;
   FlexGovernanceAdapter governanceAdapter;
@@ -44,7 +44,7 @@ contract BaseScript is Script {
             auth = new BorgAuth();
             auth.updateRole(gxpl, 98);
             govToken = new MockERC20Votes("OnlyBORGs", "oBORG");
-            mockDao = new MockDAO(govToken, auth);
+            mockDao = new FlexGov(govToken, auth);
             govToken.delegate(address(this));
 
             vm.stopBroadcast();
@@ -58,7 +58,7 @@ contract BaseScript is Script {
             metaVesT = MetaVesT(metaVesTController.metavest());
 
             safe = IGnosisSafe(MULTISIG);
-            core = new borgCore(auth, 0x1, 'test-net-deploy-borg');
+            core = new borgCore(auth, 0x1, "test-net-deploy-borg");
             failSafe = new failSafeImplant(auth, address(safe), deployerAddress);
             eject = new ejectImplant(auth, MULTISIG, address(failSafe));
             opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesTController));

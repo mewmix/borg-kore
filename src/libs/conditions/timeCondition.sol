@@ -3,12 +3,17 @@ pragma solidity 0.8.20;
 
 import "./BaseCondition.sol";
 
+/// @title TimeCondition - A condition that checks if the current time is before or after a target time
 contract TimeCondition is BaseCondition {
+    // The target time for comparison, set at contract creation
     uint256 public immutable targetTime;
+
+    // Enum to define the comparison type
     enum Comparison {
         BEFORE,
         AFTER
     }
+
     Comparison private immutable comparison;
 
     /// @param _targetTime uint256 value of the target time to compare the current time to
@@ -18,6 +23,9 @@ contract TimeCondition is BaseCondition {
         comparison = _comparison;
     }
 
+    /// @notice Compares the current time to the target time to return if the condition passes or fails
+    /// @return bool true if the condition passes (current time is before or after the target time), false otherwise
+    /// @dev No equalto needed because exact matching on block time is unlikely
     function checkCondition() public view override returns (bool) {
         uint256 currentTime = block.timestamp;
         if (comparison == Comparison.BEFORE) {

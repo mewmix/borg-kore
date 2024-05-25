@@ -38,6 +38,8 @@ contract API3OracleCondition is BaseCondition {
         condition = _condition;
     }
 
+    /// @notice Compares the value returned by the proxy to the target value to return if the condition passes or fails
+    /// @return bool true if the condition passes (returned value is greater than, equal to, or less than the target value), false otherwise
     function checkCondition() public view override returns (bool) {
         (int224 _returnedValue, uint32 _timestamp) = proxyAddress.read();
         // require a value update within the last day to prevent a stale value

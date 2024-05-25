@@ -10,7 +10,7 @@ import "./libraries/safe.t.sol";
 import "../src/libs/conditions/signatureCondition.sol";
 import "../src/implants/failSafeImplant.sol";
 import "./libraries/mocks/MockGovToken.sol";
-import "./libraries/mocks/MockDAO.sol";
+import "./libraries/mocks/FlexGov.sol";
 import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
@@ -28,7 +28,7 @@ contract GrantBorgTest is Test {
   SignatureCondition sigCondition;
   failSafeImplant failSafe;
   MockERC20Votes govToken;
-  MockDAO mockDao;
+  FlexGov mockDao;
   MetaVesT metaVesT;
   MetaVesTController metaVesTController;
   FlexGovernanceAdapter governanceAdapter;
@@ -78,13 +78,13 @@ contract GrantBorgTest is Test {
 
     //set up a mock DAO Governance contract
     govToken = new MockERC20Votes("GovToken", "GT");
-    mockDao = new MockDAO(govToken, auth);
+    mockDao = new FlexGov(govToken, auth);
     assertTrue(govToken.balanceOf(address(this)) == 1e30);
     //deal(address(govToken), address(this), 1e29);
     govToken.delegate(address(this));
 
     //set up the governance adapter for our Implants
-    governanceAdapter = new FlexGovernanceAdapter(address(mockDao));
+    governanceAdapter = new FlexGovernanceAdapter(auth, address(mockDao));
 
     metaVesTController = new MetaVesTController(MULTISIG, voting_auth, address(govToken));
     controllerAddr = address(metaVesTController);

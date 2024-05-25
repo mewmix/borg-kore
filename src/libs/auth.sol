@@ -6,34 +6,39 @@
   _/_/_/    _/    _/  _/_/_/    _/  _/_/      _/_/_/_/  _/    _/      _/      _/_/_/_/     
  _/    _/  _/    _/  _/    _/  _/    _/      _/    _/  _/    _/      _/      _/    _/      
 _/_/_/      _/_/    _/    _/    _/_/_/      _/    _/    _/_/        _/      _/    */ 
-
-
 pragma solidity 0.8.20;
 
+//Adapter interface for custom auth roles. Allows extensibility for different auth protocols i.e. hats.
 interface IAuthAdapter {
     function isAuthorized(address user) external view returns (uint256);
 }
 
-
 /// @title BorgAuth
 /// @notice ACL with extensibility for different role hierarchies and custom adapters
 contract BorgAuth {
-    //cosntants
+    //cosntants built-in roles, authority works as a hierarchy
     uint256 public constant OWNER_ROLE = 99;
     uint256 public constant ADMIN_ROLE = 98;
     uint256 public constant PRIVILEGED_ROLE = 97;
 
+    //mappings and events
+    mapping(address => uint256) public userRoles;
+    mapping(uint256 => address) public roleAdapters;
+
+    event RoleUpdated(address indexed user, uint256 role);
+    event AdapterUpdated(uint256 indexed role, address adapter);
+
     /// @dev user not authorized with given role
     error BorgAuth_NotAuthorized(uint256 role, address user);
 
-    mapping(address => uint256) public userRoles;
-    // Mapping from role to adapters
-    mapping(address => IAuthAdapter) public roleAdapters;
-
+    /// @notice deployer is owner
     constructor() {
         _updateRole(msg.sender, OWNER_ROLE);
     }
 
+    /// @notice update role for user
+    /// @param user address of user
+    /// @param role role to update
     function updateRole(
         address user,
         uint256 role
@@ -42,40 +47,58 @@ contract BorgAuth {
         _updateRole(user, role);
     }
 
-    function setRoleAdapter(address user, IAuthAdapter adapter) external {
+    /// @notice set adapter for role
+    /// @param _role role to set adapter for
+    /// @param _adapter address of adapter
+    function setRoleAdapter(uint256 _role, address _adapter) external {
         onlyRole(OWNER_ROLE, msg.sender);
-        roleAdapters[user] = adapter;
+        roleAdapters[_role] = _adapter;
+        emit AdapterUpdated(_role, _adapter);
     }
 
+    /// @notice check role for user, revert if not authorized
+    /// @param user address of user
+    /// @param role of user
     function onlyRole(uint256 role, address user) public view {
         uint256 authorized = userRoles[user];
+
         if (authorized < role) {
-        IAuthAdapter adapter = roleAdapters[user];
-        if (address(adapter) != address(0)) 
-             if (adapter.isAuthorized(user) < role) 
-                revert BorgAuth_NotAuthorized(role, user);
-         revert BorgAuth_NotAuthorized(role, user);
+            address adapter = roleAdapters[role];
+            if (adapter != address(0)) 
+                if (IAuthAdapter(adapter).isAuthorized(user) >= role) 
+                    return;
+            revert BorgAuth_NotAuthorized(role, user);
         }
     }
 
+    /// @notice interal function to add a role to a user
+    /// @param role role to update
+    /// @param user address of user
     function _updateRole(
         address user,
         uint256 role
     ) internal {
         userRoles[user] = role;
+        emit RoleUpdated(user, role);
     }
 }
 
+/// @title BorgAuthACL
+/// @notice ACL with modifiers for different roles
 abstract contract BorgAuthACL {
+    //BorgAuth instance
     BorgAuth public immutable AUTH;
 
+    // @dev zero address error
     error BorgAuthACL_ZeroAddress();
 
+    /// @notice set AUTH to BorgAuth instance
     constructor(BorgAuth _auth) {
         if(address(_auth) == address(0)) revert BorgAuthACL_ZeroAddress();
         AUTH = _auth;
     }
 
+    //common modifiers and general access control onlyRole
     modifier onlyOwner() {
         AUTH.onlyRole(AUTH.OWNER_ROLE(), msg.sender);
         _;

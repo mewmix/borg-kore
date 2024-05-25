@@ -4,17 +4,21 @@ pragma solidity 0.8.20;
 import "../../interfaces/ICondition.sol";
 import "../auth.sol";
 
+/// @title ConditionManager - A contract to manage multiple conditions for a contract
 contract ConditionManager is BorgAuthACL {
+    /// @notice Logic enum, either 'AND' (all conditions must be true) or 'OR' (only one of the conditions must be true)
     enum Logic {
         AND,
         OR
     }
 
+    /// @notice Condition struct to store the condition contract and the logic operator
     struct Condition {
         address condition;
         Logic op;
     }
 
+    // Mappings, errors, and events
     Condition[] public conditions;
     mapping(bytes4 => Condition[]) public conditionsByFunction;
 
@@ -24,6 +28,7 @@ contract ConditionManager is BorgAuthACL {
     event ConditionAdded(Condition);
     event ConditionRemoved(Condition);
 
+    /// @notice Constructor to set the BorgAuth contract
     constructor(BorgAuth _auth) BorgAuthACL(_auth) {}
 
     /// @notice allows owner to add a Condition
@@ -75,6 +80,7 @@ contract ConditionManager is BorgAuthACL {
         }
     }
 
+    /// @notice modifier based on a specific function signature, to check the conditions for that function
     modifier conditionCheck() {
         Condition[] memory conditionsToCheck = conditionsByFunction[msg.sig];
         for(uint256 i = 0; i < conditionsToCheck.length; i++) {

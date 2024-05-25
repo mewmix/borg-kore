@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import "./BaseCondition.sol";
 
+// Chainlink AggregatorV3Interface
 interface AggregatorV3Interface {
   function decimals() external view returns (uint8);
 
@@ -20,20 +21,28 @@ interface AggregatorV3Interface {
     returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 }
 
-
+/// @title ChainLinkOracleCondition
+/// @notice Condition to check the price of an asset from a ChainLink Oracle
 contract ChainLinkOracleCondition is BaseCondition {
+    // Conditional logic
     enum Condition {GREATER, EQUAL, LESS}
 
+    // immutable varaibles set at contract creation
     AggregatorV3Interface internal immutable priceFeed;
     int256 private immutable conditionPrice;
     Condition private immutable condition;
 
+    /// @param _oracleAddress address of the ChainLink Oracle contract
+    /// @param _conditionPrice int256 value of the price to compare the oracle price to
+    /// @param _condition enum which defines whether the oracle price is greater than, equal to, or less than the '_conditionPrice'
     constructor(address _oracleAddress, int256 _conditionPrice, Condition _condition) {
         priceFeed = AggregatorV3Interface(_oracleAddress);
         conditionPrice = _conditionPrice;
         condition = _condition;
     }
 
+    /// @notice Compares the current price from the ChainLink Oracle to the target price to return if the condition passes or fails
+    /// @return bool true if the condition passes (current price is greater than, equal to, or less than the target price), false otherwise
     function checkCondition() public override view returns (bool) {
         (
             /* uint80 roundID */,

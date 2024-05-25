@@ -4,11 +4,15 @@ pragma solidity 0.8.20;
 import "./BaseCondition.sol";
 import "forge-std/interfaces/IERC20.sol";
 
+/// @title BalanceCondition - A condition that checks the balance of a target address
 contract BalanceCondition is BaseCondition {
 
+    // immutable variables
     address public immutable token;
     address public immutable target;
     uint256 public immutable amount;
+
+    // comparison logic
     enum Comparison {GREATER, EQUAL, LESS}
     Comparison private immutable comparison;
 
@@ -23,6 +27,8 @@ contract BalanceCondition is BaseCondition {
         comparison = _comparison;
     }
 
+    /// @notice Compares the balance of the target address to the target amount to return if the condition passes or fails
+    /// @return bool true if the condition passes (balance is greater than, equal to, or less than the target amount), false otherwise
     function checkCondition() public view override returns (bool) {
         uint256 balance = IERC20(token).balanceOf(target);
         if (comparison == Comparison.GREATER) {

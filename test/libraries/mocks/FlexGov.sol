@@ -8,7 +8,7 @@ import "openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "forge-std/interfaces/IERC20.sol";
 import "../../../src/libs/auth.sol";
 
-contract MockDAO is Governor, GovernorVotes, GovernorCountingSimple, BorgAuthACL {
+contract FlexGov is Governor, GovernorVotes, GovernorCountingSimple, BorgAuthACL {
     struct ProposalThresholds {
         uint256 quorum;
         uint256 threshold;

@@ -3,10 +3,10 @@ pragma solidity 0.8.20;
 
 import "openzeppelin/contracts/governance/IGovernor.sol";
 
-interface IMockDAO is IGovernor {
+interface IFlexGov is IGovernor {
     // Extends IGovernor for basic governance functionalities
 
-    // Additional specific functions for MockDAO
+    // Additional specific functions for FlexGov
     function proposeWithThresholds(
         address[] memory targets,
         uint256[] memory values,

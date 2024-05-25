@@ -10,7 +10,7 @@ import "../src/implants/daoVetoGrantImplant.sol";
 import "../src/libs/conditions/signatureCondition.sol";
 import "../src/implants/failSafeImplant.sol";
 import "../test/libraries/mocks/MockGovToken.sol";
-import "../test/libraries/mocks/MockDAO.sol";
+import "../test/libraries/mocks/FlexGov.sol";
 import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
@@ -35,7 +35,7 @@ contract BaseScript is Script {
   SignatureCondition sigCondition;
   failSafeImplant failSafe;
   MockERC20Votes govToken;
-  MockDAO mockDao;
+  FlexGov mockDao;
   MetaVesT metaVesT;
   MetaVesTController metaVesTController;
   FlexGovernanceAdapter governanceAdapter;
