@@ -8,15 +8,23 @@ import "../interfaces/IGovernanceAdapter.sol";
 import "metavest/MetaVesTController.sol";
 import "./baseImplant.sol";
 
-
+/// @title daoVetoGrantImplan
+/// @notice This implant allows the BORG to grant time locked grants, vetoable by the DAO or authority.
 contract daoVetoGrantImplant is BaseImplant { //is baseImplant
 
+    // BORG Implant ID
     uint256 public immutable IMPLANT_ID = 3;
+
+    // Governance Vars
     uint256 public lastMotionId;
     address public governanceAdapter;
     address public governanceExecutor;
+
+    // MetaVest Vars
     MetaVesT public metaVesT;
     MetaVesTController public metaVesTController;
+
+    // Proposal Vars
     uint256 public duration = 3; //3 days
     uint256 public quorum = 3; //3%
     uint256 public threshold = 25; //25%
@@ -24,6 +32,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     uint256 public lastProposalTime;
     bool public requireBorgVote = true;
 
+    // Grant Proposal Struct
     struct Proposal {
         uint256 id;
         uint256 duration;
@@ -31,6 +40,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes cdata;
     }
 
+    // Veto Governance Proposal Struct
     struct prop {
         address[] targets;
         uint256[] values;
@@ -38,6 +48,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes32 desc;
     }
 
+    // Errors and Events
     error daoVetoGrantImplant_NotAuthorized();
     error daoVetoGrantImplant_CallerNotBORGMember();
     error daoVetoGrantImplant_CallerNotBORG();
@@ -50,6 +61,19 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     error daoVetoGrantImplant_ProposalNotFound();
     error daoVetoGrantImplant_ApprovalFailed();
     error daoVetoGrantImplant_GrantFailed();
+
+    event GrantTokenAdded(address indexed token, uint256 spendingLimit);
+    event GrantTokenRemoved(address indexed token);
+    event WaitingPeriodUpdated(uint256 newWaitingPeriod);
+    event DurationUpdated(uint256 newDuration);
+    event QuorumUpdated(uint256 newQuorum);
+    event ThresholdUpdated(uint256 newThreshold);
+    event GovernanceAdapterSet(address indexed governanceAdapter);
+    event BorgVoteToggled(bool requireBorgVote);
+    event DirectGrantProposed(address indexed token, address indexed recipient, uint256 amount, uint256 proposalId, uint256 vetoPropId);
+    event SimpleGrantProposed(address indexed token, address indexed recipient, uint256 amount, uint256 proposalId, uint256 vetoPropId);
+    event AdvancedGrantProposed(MetaVesT.MetaVesTDetails metavestDetails, uint256 proposalId, uint256 vetoPropId);
+    event ProposalExecuted(uint256 proposalId);
 
     Proposal[] public currentProposals;
     mapping(uint256 => prop) public vetoProposals;
@@ -71,34 +95,42 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
 
     function addApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {
         approvedGrantTokens[_token] = _spendingLimit;
+        emit GrantTokenAdded(_token, _spendingLimit);
     }
 
     function removeApprovedGrantToken(address _token) external onlyOwner {
         approvedGrantTokens[_token] = 0;
+        emit GrantTokenRemoved(_token);
     }
 
     function updateWaitingPeriod(uint256 _waitingPeriod) external onlyOwner {
         waitingPeriod = _waitingPeriod;
+        emit WaitingPeriodUpdated(_waitingPeriod);
     }
 
     function updateDuration(uint256 _duration) external onlyOwner {
         duration = _duration;
+        emit DurationUpdated(_duration);
     }
 
     function updateQuorum(uint256 _quorum) external onlyOwner {
         quorum = _quorum;
+        emit QuorumUpdated(_quorum);
     }
 
     function updateThreshold(uint256 _threshold) external onlyOwner {
          threshold = _threshold;
+        emit ThresholdUpdated(_threshold);
     }
 
     function setGovernanceAdapter(address _governanceAdapter) external onlyOwner {
         governanceAdapter = _governanceAdapter;
+        emit GovernanceAdapterSet(_governanceAdapter);
     }
 
     function toggleBorgVote(bool _requireBorgVote) external onlyOwner {
         requireBorgVote = _requireBorgVote;
+        emit BorgVoteToggled(_requireBorgVote);
     }
 
     // should only be executed by a BORG owner/member
@@ -117,6 +149,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         if(!success)
             revert daoVetoGrantImplant_ProposalExecutionError();
         _deleteProposal(_proposalId);
+        emit ProposalExecuted(_proposalId);
     }
 
     function _getProposal(uint256 _proposalId) internal view returns (Proposal storage) {
@@ -125,7 +158,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         return currentProposals[proposalIndex - 1];
     }
 
-    function _deleteProposal(uint256 _proposalId) public {
+    function _deleteProposal(uint256 _proposalId) internal {
         uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
         if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
         uint256 lastProposalIndex = currentProposals.length - 1;
@@ -137,10 +170,10 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         delete proposalIndicesByProposalId[_proposalId];
     }
 
-    function proposeDirectGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 proposalId, uint256 _newProposalId) {
+    function proposeDirectGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 vetoProposalId, uint256 newProposalId) {
         //Set ID to 0 incase there is a failure in the GovernanceAdapter
-        proposalId = 0;
-        _newProposalId = 0;
+        vetoProposalId = 0;
+        newProposalId = 0;
 
         if(lastProposalTime + waitingPeriod > block.timestamp)
             revert daoVetoGrantImplant_ProposalWaitingPeriodActive();
@@ -160,13 +193,13 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes memory proposalBytecode = abi.encodeWithSignature("executeDirectGrant(address,address,uint256)", _token, _recipient, _amount);
        
         Proposal storage newProposal = currentProposals.push();
-        _newProposalId = ++lastMotionId;
-        newProposal.id = _newProposalId;
+        newProposalId = ++lastMotionId;
+        newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
-        proposalIndicesByProposalId[_newProposalId] = currentProposals.length;
+        proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", _newProposalId);
+        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", newProposalId);
         address[] memory targets = new address[](1);
         targets[0] = address(this);
         uint256[] memory values = new uint256[](1);
@@ -176,15 +209,16 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
 
         if(governanceAdapter != address(0))
         {
-            proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
-            vetoProposals[proposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
+            vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
         }
        lastProposalTime = block.timestamp;
+       emit DirectGrantProposed(_token, _recipient, _amount, newProposalId, vetoProposalId);
     }
 
-    function proposeSimpleGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 proposalId, uint256 _newProposalId) {
-        proposalId = 0;
-        _newProposalId = 0;
+    function proposeSimpleGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 vetoProposalId, uint256 newProposalId) {
+        vetoProposalId = 0;
+        newProposalId = 0;
 
         if(lastProposalTime + waitingPeriod > block.timestamp)
             revert daoVetoGrantImplant_ProposalWaitingPeriodActive();
@@ -204,13 +238,13 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes memory proposalBytecode = abi.encodeWithSignature("executeSimpleGrant(address,address,uint256)", _token, _recipient, _amount);
      
         Proposal storage newProposal = currentProposals.push();
-        _newProposalId = ++lastMotionId;
-        newProposal.id = _newProposalId;
+        newProposalId = ++lastMotionId;
+        newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
-        proposalIndicesByProposalId[_newProposalId] = currentProposals.length;
+        proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", _newProposalId);
+        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", newProposalId);
         address[] memory targets = new address[](1);
         targets[0] = address(this);
         uint256[] memory values = new uint256[](1);
@@ -220,16 +254,17 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
 
         if(governanceAdapter != address(0))
         {
-            proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
-            vetoProposals[proposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
+            vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
         }
 
         lastProposalTime = block.timestamp;
+        emit SimpleGrantProposed(_token, _recipient, _amount, newProposalId, vetoProposalId);
     }
 
-    function proposeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails, string memory _desc) external returns (uint256 proposalId, uint256 _newProposalId) {
-        proposalId = 0;
-        _newProposalId = 0;
+    function proposeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails, string memory _desc) external returns (uint256 vetoProposalId, uint256 newProposalId) {
+        vetoProposalId = 0;
+        newProposalId = 0;
         
         if(lastProposalTime + waitingPeriod > block.timestamp)
             revert daoVetoGrantImplant_ProposalWaitingPeriodActive();
@@ -256,13 +291,13 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(MetaVesT.MetaVesTDetails)", _metaVestDetails);
 
         Proposal storage newProposal = currentProposals.push();
-        _newProposalId = ++lastMotionId;
-        newProposal.id = _newProposalId;
+        newProposalId = ++lastMotionId;
+        newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
-        proposalIndicesByProposalId[_newProposalId] = currentProposals.length;
+        proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", _newProposalId);
+        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", newProposalId);
         address[] memory targets = new address[](1);
         targets[0] = address(this);
         uint256[] memory values = new uint256[](1);
@@ -272,11 +307,12 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
 
         if(governanceAdapter != address(0))
         {
-            proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
-            vetoProposals[proposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
+            vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
         }
 
         lastProposalTime = block.timestamp;
+        emit AdvancedGrantProposed(_metaVestDetails, newProposalId, vetoProposalId);
     }
 
     function executeDirectGrant(address _token, address _recipient, uint256 _amount) internal {
