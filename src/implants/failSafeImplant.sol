@@ -71,7 +71,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
     /// @notice removeTokenByAddress function to remove token from the tokenList
     /// @param _tokenAddress The address of the token
     function removeTokenByAddress(address _tokenAddress) external onlyOwner {
-        for(uint i = 0; i < tokenList.length; i++) {
+        for(uint256 i = 0; i < tokenList.length; i++) {
             if(tokenList[i].tokenAddress == _tokenAddress) {
                 tokenList[i] = tokenList[tokenList.length - 1];
                 tokenList.pop();
@@ -88,7 +88,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         if(!checkConditions()) revert failSafeImplant_ConditionsNotMet();
 
-        for(uint i = 0; i < tokenList.length; i++) {
+        for(uint256 i = 0; i < tokenList.length; i++) {
             if(tokenList[i].tokenType == 0) {
                 // Encode the call to the ERC20 token's `transfer` function
                 uint256 amountToSend = tokenList[i].amount;

@@ -115,7 +115,7 @@ function testSign_AllSigners_AndLogic() public {
     signers[1] = address(0x2);
     signers[2] = address(0x3);
 
-        for (uint i = 0; i < signers.length; i++) {
+        for (uint256 i = 0; i < signers.length; i++) {
             vm.prank(signers[i]);
             signatureConditionAnd.sign();
         }
@@ -152,7 +152,7 @@ function testSign_AllSigners_AndLogic() public {
     signers[1] = address(0x2);
     signers[2] = address(0x3);
 
-        for (uint i = 0; i < signers.length; i++) {
+        for (uint256 i = 0; i < signers.length; i++) {
             vm.prank(signers[i]);
             signatureConditionAnd.sign();
         }
@@ -167,7 +167,7 @@ function testSign_AllSigners_AndLogic() public {
     signers[1] = address(0x2);
     signers[2] = address(0x3);
 
-        for (uint i = 0; i < threshold; i++) {
+        for (uint256 i = 0; i < threshold; i++) {
             vm.prank(signers[i]);
             signatureConditionOr.sign();
         }
@@ -182,7 +182,7 @@ function testSign_AllSigners_AndLogic() public {
     signers[1] = address(0x2);
     signers[2] = address(0x3);
 
-        for (uint i = 0; i < threshold; i++) {
+        for (uint256 i = 0; i < threshold; i++) {
             vm.prank(signers[i]);
             signatureConditionOr.sign();
         }

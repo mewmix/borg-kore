@@ -244,7 +244,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
             uint256 maxValue = _maxValues[i];
 
             bytes32[] memory sliced = new bytes32[](matchNum[i]);
-            for (uint x = 0; x < matchNum[i]; x++) {
+            for (uint256 x = 0; x < matchNum[i]; x++) {
                 sliced[x] = _exactMatches[exactMatchIndex+x];
             }
             exactMatchIndex+=matchNum[i];

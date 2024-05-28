@@ -51,9 +51,9 @@ contract FailSafeImplantTest is Test {
         failSafe.addToken(address(dai), 0, 100, 0);
         vm.stopPrank();
         address addr;
-        uint id;
-        uint amount;
-        uint tokenType;
+        uint256 id;
+        uint256 amount;
+        uint256 tokenType;
         (addr, id, amount, tokenType) = failSafe.tokenList(0);
         assertEq(addr, address(dai));
         assertEq(id, 0);

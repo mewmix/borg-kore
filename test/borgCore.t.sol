@@ -142,6 +142,56 @@ contract BorgCoreTest is Test {
     executeSingle(getTransferData(address(dai), owner, .01 ether));
   }
 
+ /// @dev Test bulk update policy with exact match of 2 different addresses and a range parameter constraint
+    function testBulkUpdatePolicy() public {
+        address[] memory _contracts = new address[](2);
+        string[] memory _methodNames = new string[](2);
+        uint256[] memory _minValues = new uint256[](2);
+        uint256[] memory _maxValues = new uint256[](2);
+        borgCore.ParamType[] memory _paramTypes = new borgCore.ParamType[](2);
+        bytes32[] memory _exactMatches = new bytes32[](4);
+        uint256[] memory _matchNum = new uint256[](2);
+        uint256[] memory _byteOffsets = new uint256[](2);
+        uint256[] memory _byteLengths = new uint256[](2);
+
+        // Setting up the exact match for two addresses
+        _contracts[0] = address(dai);
+        _methodNames[0] = "transfer(address,uint256)";
+        _minValues[0] = 0;
+        _maxValues[0] = 0;
+        _paramTypes[0] = borgCore.ParamType.ADDRESS;
+        _exactMatches[0] = keccak256(abi.encodePacked(address(owner)));
+        _exactMatches[1] = keccak256(abi.encodePacked(address(dao)));
+        _matchNum[0] = 2;
+        _byteOffsets[0] = 16;
+        _byteLengths[0] = 20;
+
+        // Setting up the range parameter constraint
+        _contracts[1] = address(dai);
+        _methodNames[1] = "transfer(address,uint256)";
+        _minValues[1] = 0;
+        _maxValues[1] = 1 ether;
+        _paramTypes[1] = borgCore.ParamType.UINT;
+        _matchNum[1] = 0;  // No exact matches for this
+        _byteOffsets[1] = 36;
+        _byteLengths[1] = 32;
+
+        vm.prank(dao);
+        core.updatePolicy(_contracts, _methodNames, _minValues, _paramTypes, _maxValues, _exactMatches, _matchNum, _byteOffsets, _byteLengths);
+
+        // Test that the policy was correctly updated
+        bytes32[] memory matches = new bytes32[](1);
+        matches[0] = keccak256(abi.encodePacked(address(owner)));
+        vm.prank(dao);
+        core.addRecipient(owner, .01 ether);
+        
+        // Exact match test
+        executeSingle(getTransferData(address(dai), owner, .01 ether));
+
+        // Range parameter constraint test
+        executeSingle(getTransferData(address(dai), owner, .5 ether));
+    }
+
    function testFailMethodCooldown() public {
 
         executeSingle(getSetGuardData(address(MULTISIG)));

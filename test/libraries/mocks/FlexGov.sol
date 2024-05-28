@@ -109,8 +109,7 @@ contract FlexGov is Governor, GovernorVotes, GovernorCountingSimple, BorgAuthACL
         uint256 votesRequired = (totalVotes * proposalThresholds[proposalId].threshold) / 100;
         return getSupportVotes(proposalId) >= votesRequired;
     }
-
-
+    
       // Implementing required abstract functions
     function quorum(uint256 blockNumber) public view override returns (uint256) {
         return 1; 
