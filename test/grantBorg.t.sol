@@ -94,7 +94,7 @@ contract GrantBorgTest is Test {
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1, 'grant-bool-testing');
     failSafe = new failSafeImplant(auth, address(safe), dao);
-    eject = new ejectImplant(auth, MULTISIG, address(failSafe));
+    eject = new ejectImplant(auth, MULTISIG, address(failSafe), false, true);
     opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesTController));
     //constructor(Auth _auth, address _borgSafe, uint256 _duration, uint _quorum, uint256 _threshold, uint _waitingPeriod, address _governanceAdapter, address _governanceExecutor, address _metaVesT, address _metaVesTController)
     vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, 600, 5, 10, 600, address(governanceAdapter), address(mockDao), address(metaVesTController));
@@ -331,7 +331,7 @@ contract GrantBorgTest is Test {
     vm.prank(owner);
     sigCondition.sign();
     vm.prank(dao);
-    eject.ejectOwner(address(jr), 1);
+    eject.ejectOwner(address(jr), 1, false);
     assertEq(safe.isOwner(address(jr)), false);
   }
 
@@ -343,7 +343,7 @@ contract GrantBorgTest is Test {
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr, 1);
+    eject.ejectOwner(jr, 1, false);
     assertEq(safe.isOwner(address(jr)), true);
   }
 

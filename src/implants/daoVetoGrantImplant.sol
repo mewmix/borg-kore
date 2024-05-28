@@ -75,13 +75,23 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     event AdvancedGrantProposed(MetaVesT.MetaVesTDetails metavestDetails, uint256 proposalId, uint256 vetoPropId);
     event ProposalExecuted(uint256 proposalId);
 
+    // Proposal Storage and mappings
     Proposal[] public currentProposals;
     mapping(uint256 => prop) public vetoProposals;
     mapping(uint256 => uint256) internal proposalIndicesByProposalId;
     mapping(address => uint256) approvedGrantTokens;
     uint256 internal constant PERC_SCALE = 10000;
 
-    constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint _quorum, uint256 _threshold, uint _waitingPeriod, address _governanceAdapter, address _governanceExecutor,address _metaVestController) BaseImplant(_auth, _borgSafe) {
+    /// @notice Constructor
+    /// @param _auth The BorgAuth contract address
+    /// @param _borgSafe The BORG Safe address
+    /// @param _duration The duration of the proposal
+    /// @param _quorum The quorum required for the proposal
+    /// @param _threshold The threshold required for the proposal
+    /// @param _waitingPeriod The waiting period required for the proposal
+    /// @param _governanceAdapter The governance adapter address
+    /// @param _governanceExecutor The governance executor address
+    constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, uint256 _waitingPeriod, address _governanceAdapter, address _governanceExecutor,address _metaVestController) BaseImplant(_auth, _borgSafe) {
         duration = _duration;
         quorum = _quorum;
         threshold = _threshold;
@@ -93,47 +103,66 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         metaVesT = MetaVesT(metaVesTController.metavest());
     }
 
+    /// @notice Function to add an approved grant token
+    /// @param _token The token address
+    /// @param _spendingLimit The spending limit for the token
     function addApprovedGrantToken(address _token, uint256 _spendingLimit) external onlyOwner {
         approvedGrantTokens[_token] = _spendingLimit;
         emit GrantTokenAdded(_token, _spendingLimit);
     }
 
+    /// @notice Function to remove an approved grant token
+    /// @param _token The token address
     function removeApprovedGrantToken(address _token) external onlyOwner {
         approvedGrantTokens[_token] = 0;
         emit GrantTokenRemoved(_token);
     }
 
+    /// @notice Function to update the waiting period
+    /// @param _waitingPeriod The new waiting period
     function updateWaitingPeriod(uint256 _waitingPeriod) external onlyOwner {
         waitingPeriod = _waitingPeriod;
         emit WaitingPeriodUpdated(_waitingPeriod);
     }
 
+    /// @notice Function to update the duration
+    /// @param _duration The new duration
     function updateDuration(uint256 _duration) external onlyOwner {
         duration = _duration;
         emit DurationUpdated(_duration);
     }
 
+    /// @notice Function to update the quorum
+    /// @param _quorum The new quorum
     function updateQuorum(uint256 _quorum) external onlyOwner {
         quorum = _quorum;
         emit QuorumUpdated(_quorum);
     }
 
+    /// @notice Function to update the threshold
+    /// @param _threshold The new threshold
     function updateThreshold(uint256 _threshold) external onlyOwner {
          threshold = _threshold;
         emit ThresholdUpdated(_threshold);
     }
 
+    /// @notice Function to set the governance adapter
+    /// @param _governanceAdapter The new governance adapter
     function setGovernanceAdapter(address _governanceAdapter) external onlyOwner {
         governanceAdapter = _governanceAdapter;
         emit GovernanceAdapterSet(_governanceAdapter);
     }
 
+    /// @notice Function to toggle the BORG vote requirement
+    /// @param _requireBorgVote The new BORG vote requirement
     function toggleBorgVote(bool _requireBorgVote) external onlyOwner {
         requireBorgVote = _requireBorgVote;
         emit BorgVoteToggled(_requireBorgVote);
     }
 
-    // should only be executed by a BORG owner/member
+    /// @notice Function to execute a proposal
+    /// @param _proposalId The proposal ID
+    /// @dev Only callable by an active BORG member
     function executeProposal(uint256 _proposalId)
         external
     {
@@ -152,12 +181,17 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         emit ProposalExecuted(_proposalId);
     }
 
+    /// @notice Internal View function to get a proposal
+    /// @param _proposalId The proposal ID
+    /// @return Proposal The proposal struct
     function _getProposal(uint256 _proposalId) internal view returns (Proposal storage) {
         uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
         if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
         return currentProposals[proposalIndex - 1];
     }
 
+    /// @notice Internal function to delete a proposal
+    /// @param _proposalId The proposal ID
     function _deleteProposal(uint256 _proposalId) internal {
         uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
         if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
@@ -170,6 +204,13 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         delete proposalIndicesByProposalId[_proposalId];
     }
 
+    /// @notice Function to propose a direct grant, bypassing MetaVesT
+    /// @param _token The token address
+    /// @param _recipient The recipient address
+    /// @param _amount The amount to grant
+    /// @param _desc The proposal description
+    /// @return vetoProposalId The veto proposal ID
+    /// @return newProposalId The new proposal ID
     function proposeDirectGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 vetoProposalId, uint256 newProposalId) {
         //Set ID to 0 incase there is a failure in the GovernanceAdapter
         vetoProposalId = 0;
@@ -216,6 +257,13 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
        emit DirectGrantProposed(_token, _recipient, _amount, newProposalId, vetoProposalId);
     }
 
+    /// @notice Function to propose a simple grant, using MetaVest for claiming
+    /// @param _token The token address
+    /// @param _recipient The recipient address
+    /// @param _amount The amount to grant
+    /// @param _desc The proposal description
+    /// @return vetoProposalId The veto proposal ID
+    /// @return newProposalId The new proposal ID
     function proposeSimpleGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 vetoProposalId, uint256 newProposalId) {
         vetoProposalId = 0;
         newProposalId = 0;
@@ -262,6 +310,11 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         emit SimpleGrantProposed(_token, _recipient, _amount, newProposalId, vetoProposalId);
     }
 
+    /// @notice Function to propose an advanced grant, using MetaVest for advanced vesting/unlocking types
+    /// @param _metaVestDetails The MetaVesT details
+    /// @param _desc The proposal description
+    /// @return vetoProposalId The veto proposal ID
+    /// @return newProposalId The new proposal ID
     function proposeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails, string memory _desc) external returns (uint256 vetoProposalId, uint256 newProposalId) {
         vetoProposalId = 0;
         newProposalId = 0;
@@ -315,6 +368,10 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         emit AdvancedGrantProposed(_metaVestDetails, newProposalId, vetoProposalId);
     }
 
+    /// @notice Internal function to execute a direct grant, callable only from executeProposal
+    /// @param _token The token address
+    /// @param _recipient The recipient address
+    /// @param _amount The amount to grant
     function executeDirectGrant(address _token, address _recipient, uint256 _amount) internal {
 
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
@@ -326,6 +383,11 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
             ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("transfer(address,uint256)", _recipient, _amount), Enum.Operation.Call);
     }
 
+
+    /// @notice Internal function to execute a simple grant, callable only from executeProposal
+    /// @param _token The token address
+    /// @param _recipient The recipient address
+    /// @param _amount The amount to grant
     function executeSimpleGrant(address _token, address _recipient, uint256 _amount) internal {
 
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
@@ -366,6 +428,8 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
   
     }
 
+    /// @notice Internal function to execute an advanced grant, callable only from executeProposal
+    /// @param _metavestDetails The MetaVesT details
     function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metavestDetails) internal {
 
          //cycle through any allocations and approve the metavest to spend the amount

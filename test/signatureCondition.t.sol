@@ -69,7 +69,7 @@ contract SigConditionTest is Test {
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1, 'sig-condition-testing');
     failSafe = new failSafeImplant(auth, address(safe), dao);
-    eject = new ejectImplant(auth, MULTISIG, address(failSafe));
+    eject = new ejectImplant(auth, MULTISIG, address(failSafe), false, true);
 
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
@@ -248,7 +248,7 @@ function testSign_AllSigners_AndLogic() public {
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr,1 );
+    eject.ejectOwner(jr,1,false);
     assertEq(safe.isOwner(address(jr)), true);
   }
 

@@ -80,6 +80,39 @@ contract ConditionManager is BorgAuthACL {
         }
     }
 
+    /// @notice allows owner to add a Condition to a specific function signature
+    /// @param _op Logic enum, either 'AND' (all conditions must be true) or 'OR' (only one of the conditions must be true)
+    /// @param _condition address of the condition contract
+    /// @param _functionSignature function signature to associate the condition with
+    function addConditionToFunction(
+        Logic _op,
+        address _condition,
+        bytes4 _functionSignature
+    ) external onlyOwner {
+        conditionsByFunction[_functionSignature].push(
+            Condition(_condition, _op)
+        );
+    }
+
+    /// @notice allows owner to remove a Condition from a specific function signature
+    /// @dev removes array element by copying last element into to the place to remove, and also shortens the array length accordingly via 'pop()'
+    /// @param _index element of the 'conditionsByFunction' array to be removed
+    /// @param _functionSignature function signature to remove the condition from
+    function removeConditionFromFunction(
+        uint256 _index,
+        bytes4 _functionSignature
+    ) external onlyOwner {
+        uint256 _maxIndex = conditionsByFunction[_functionSignature].length - 1;
+        if (_index > _maxIndex) revert ConditionManager_ConditionDoesNotExist();
+
+        // copy the last element into the _index place rather than deleting the indexed element, to avoid a gap in the array once the indexed element is deleted
+        conditionsByFunction[_functionSignature][_index] = conditionsByFunction[
+            _functionSignature
+        ][_maxIndex];
+        // remove the last element, as it is now duplicative (having replaced the '_index' element), and decrease the length by 1
+        conditionsByFunction[_functionSignature].pop();
+    }
+
     /// @notice modifier based on a specific function signature, to check the conditions for that function
     modifier conditionCheck() {
         Condition[] memory conditionsToCheck = conditionsByFunction[msg.sig];

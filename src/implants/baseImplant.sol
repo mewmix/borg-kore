@@ -4,6 +4,9 @@ pragma solidity 0.8.20;
 import "../libs/auth.sol";
 import "../libs/conditions/conditionManager.sol";
 
+/// @title BaseImplant
+/// @notice Base contract for all implants, implements BorgAuthACL and ConditionManager
+/// @notice stores the address of the Borg's SAFE contract and the version
 contract BaseImplant is BorgAuthACL, ConditionManager {
 
   address public immutable BORG_SAFE;

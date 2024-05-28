@@ -116,8 +116,6 @@ contract BaseScript is Script {
     return txData;
   }
 
-
-
     function executeData(
         address to,
         uint8 operation,

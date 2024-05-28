@@ -60,7 +60,7 @@ contract PBVBorgTest is Test {
     safe = IGnosisSafe(MULTISIG);
     core = new borgCore(auth, 0x1, 'pbv-borg-testing');
     failSafe = new failSafeImplant(auth, address(safe), dao);
-    eject = new ejectImplant(auth, MULTISIG, address(failSafe));
+    eject = new ejectImplant(auth, MULTISIG, address(failSafe), false, true);
 
 
     //for test: give out some tokens
@@ -96,7 +96,7 @@ contract PBVBorgTest is Test {
 
    function testDAOEject() public {
     vm.prank(dao);
-    eject.ejectOwner(address(jr), 1);
+    eject.ejectOwner(address(jr), 1, false);
     assertEq(safe.isOwner(address(jr)), false);
   }
 
@@ -108,7 +108,7 @@ contract PBVBorgTest is Test {
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr, 1);
+    eject.ejectOwner(jr, 1, false);
     assertEq(safe.isOwner(address(jr)), true);
   }
 

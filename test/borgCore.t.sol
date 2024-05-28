@@ -47,7 +47,7 @@ contract BorgCoreTest is Test {
     core = new borgCore(auth, 0x1, 'borg-core-testing');
 
     failSafe = new failSafeImplant(auth, address(safe), dao);
-    eject = new ejectImplant(auth, MULTISIG, address(failSafe));
+    eject = new ejectImplant(auth, MULTISIG, address(failSafe), false, true);
 
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);
@@ -92,7 +92,7 @@ contract BorgCoreTest is Test {
     //jr cannot use the ejectOwner method bc he doesn't have ACL in the contract, can only selfEject
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr, 1);
+    eject.ejectOwner(jr, 1, false);
     assertEq(safe.isOwner(address(jr)), true);
   }
 
