@@ -50,7 +50,7 @@ contract BaseScript is Script {
             vm.stopBroadcast();
             safe = IGnosisSafe(MULTISIG);
             vm.startBroadcast(deployerPrivateKey);
-            governanceAdapter = new FlexGovernanceAdapter(address(mockDao));
+            governanceAdapter = new FlexGovernanceAdapter(auth, address(mockDao));
             metaVesTController = new MetaVesTController(MULTISIG, MULTISIG, address(govToken));
             vm.stopBroadcast();
             address controllerAddr = address(metaVesTController);
@@ -60,7 +60,7 @@ contract BaseScript is Script {
             safe = IGnosisSafe(MULTISIG);
             core = new borgCore(auth, 0x1, "test-net-deploy-borg", address(safe));
             failSafe = new failSafeImplant(auth, address(safe), deployerAddress);
-            eject = new ejectImplant(auth, MULTISIG, address(failSafe));
+            eject = new ejectImplant(auth, MULTISIG, address(failSafe), false, true);
             opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesTController));
             auth.updateRole(address(opGrant), 98);
 
@@ -72,6 +72,7 @@ contract BaseScript is Script {
             auth.updateRole(address(vetoGrant), 98);
 
             auth.updateRole(address(governanceAdapter), 98);
+            auth.updateRole(address(mockDao), 99);
 
       
             executeSingle(getAddModule(address(opGrant)));
@@ -82,6 +83,13 @@ contract BaseScript is Script {
 
             //dao deploys the core, with the dao as the owner.
             core.addFullAccessContract(address(core));
+            core.addFullAccessContract(address(safe));
+            core.addFullAccessContract(address(op));
+            core.addFullAccessContract(address(veto));
+            core.addFullAccessContract(address(vote));
+            core.addFullAccessContract(address(govToken));
+            govToken.transfer(MULTISIG, 100000000000 * 10**18);
+            govToken.transfer(gxpl,      10000000000 * 10**18);
             //Set the core as the guard for the safe
             executeSingle(getSetGuardData(address(MULTISIG)));
             vm.stopBroadcast();
