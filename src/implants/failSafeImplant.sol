@@ -37,6 +37,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
     error failSafeImplant_ConditionsNotMet();
     error failSafeImplant_InvalidToken();
     error failSafeImplant_FailedTransfer();
+    error failSafeImplant_ZeroAddressRecovery();
 
     // Events
     event TokenAdded(address indexed tokenAddress, uint256 id, uint256 amount, uint8 tokenType);
@@ -49,6 +50,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
     /// @param _borgSafe The BORG Safe contract address
     /// @param _recoveryAddress The address to which the funds will be recovered, immutable
     constructor(BorgAuth _auth, address _borgSafe, address _recoveryAddress) BaseImplant(_auth, _borgSafe) {
+        if(_recoveryAddress == address(0)) revert failSafeImplant_ZeroAddressRecovery();
         RECOVERY_ADDRESS = _recoveryAddress;
     }
 
@@ -83,7 +85,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
 
     /// @notice removeTokenByIndex function to remove token from the tokenList
     /// @notice must pass the condition manager checks
-    function recoverSafeFunds() external onlyOwner {
+    function recoverSafeFunds() external onlyOwner conditionCheck {
 
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         if(!checkConditions()) revert failSafeImplant_ConditionsNotMet();

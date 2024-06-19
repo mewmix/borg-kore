@@ -116,15 +116,21 @@ contract ConditionManager is BorgAuthACL {
     /// @notice modifier based on a specific function signature, to check the conditions for that function
     modifier conditionCheck() {
         Condition[] memory conditionsToCheck = conditionsByFunction[msg.sig];
+        bool conditionHit = false;
         for(uint256 i = 0; i < conditionsToCheck.length; i++) {
             if(conditionsToCheck[i].op == Logic.AND) {
-                if(!ICondition(conditionsToCheck[i].condition).checkCondition()) revert ConditionManager_ConditionNotMet();
+                if(!ICondition(conditionsToCheck[i].condition).checkCondition()) 
+                    revert ConditionManager_ConditionNotMet();
+                else
+                    conditionHit = true;
             } else {
                 if(ICondition(conditionsToCheck[i].condition).checkCondition()) {
+                   conditionHit = true;
                    break;
                 }
             }
         }
+        if(conditionsToCheck.length>0 && !conditionHit) revert ConditionManager_ConditionNotMet();
         _;
     }
 }

@@ -8,7 +8,7 @@ import "./baseImplant.sol";
 
 /// @title optimisticGrantImplant
 /// @notice This implant allows for the BORG to create grants pre-approved by the DAO
-contract optimisticGrantImplant is BaseImplant { //is baseImplant
+contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImplant
 
     // The ID of the implant
     uint256 public immutable IMPLANT_ID = 2;
@@ -98,7 +98,7 @@ contract optimisticGrantImplant is BaseImplant { //is baseImplant
     /// @param _token address of the token to grant
     /// @param _recipient address of the recipient
     /// @param _amount amount to grant
-    function createDirectGrant(address _token, address _recipient, uint256 _amount) external {
+    function createDirectGrant(address _token, address _recipient, uint256 _amount) external nonReentrant {
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
 

@@ -13,7 +13,7 @@ contract BalanceCondition is BaseCondition {
     uint256 public immutable amount;
 
     // comparison logic
-    enum Comparison {GREATER, EQUAL, LESS}
+    enum Comparison {GREATER, LESS}
     Comparison private immutable comparison;
 
     /// @param _token address of the ERC20 token to check the balance of
@@ -33,8 +33,6 @@ contract BalanceCondition is BaseCondition {
         uint256 balance = IERC20(token).balanceOf(target);
         if (comparison == Comparison.GREATER) {
             return balance > amount;
-        } else if (comparison == Comparison.EQUAL) {
-            return balance == amount;
         } else if (comparison == Comparison.LESS) {
             return balance < amount;
         } else return false; // Default to false in case of unexpected condition value

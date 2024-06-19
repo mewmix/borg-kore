@@ -25,7 +25,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     MetaVesTController public metaVesTController;
 
     // Proposal Vars
-    uint256 public duration = 3; //3 days
+    uint256 public duration = 3 days; //3 days
     uint256 public quorum = 3; //3%
     uint256 public threshold = 25; //25%
     uint256 public waitingPeriod = 24 hours;
@@ -62,6 +62,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     error daoVetoGrantImplant_ApprovalFailed();
     error daoVetoGrantImplant_GrantFailed();
 
+
     event GrantTokenAdded(address indexed token, uint256 spendingLimit);
     event GrantTokenRemoved(address indexed token);
     event WaitingPeriodUpdated(uint256 newWaitingPeriod);
@@ -79,8 +80,13 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     Proposal[] public currentProposals;
     mapping(uint256 => prop) public vetoProposals;
     mapping(uint256 => uint256) internal proposalIndicesByProposalId;
-    mapping(address => uint256) approvedGrantTokens;
+    mapping(address => uint256) public approvedGrantTokens;
     uint256 internal constant PERC_SCALE = 10000;
+
+    modifier onlyThis() {
+        if(msg.sender != address(this)) revert daoVetoGrantImplant_NotAuthorized();
+        _;
+    }
 
     /// @notice Constructor
     /// @param _auth The BorgAuth contract address
@@ -129,7 +135,9 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     /// @param _duration The new duration
     function updateDuration(uint256 _duration) external onlyOwner {
         duration = _duration;
-        emit DurationUpdated(_duration);
+        if(duration > 30 days)
+            duration = 30 days;
+        emit DurationUpdated(duration);
     }
 
     /// @notice Function to update the quorum
@@ -160,6 +168,20 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         emit BorgVoteToggled(_requireBorgVote);
     }
 
+    /// @notice Internal function to delete a proposal
+    /// @param _proposalId The proposal ID
+    function deleteProposal(uint256 _proposalId) public onlyThis {
+        uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
+        if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
+        uint256 lastProposalIndex = currentProposals.length - 1;
+        if (proposalIndex - 1 != lastProposalIndex) {
+            currentProposals[proposalIndex - 1] = currentProposals[lastProposalIndex];
+            proposalIndicesByProposalId[currentProposals[lastProposalIndex].id] = proposalIndex;
+        }
+        currentProposals.pop();
+        delete proposalIndicesByProposalId[_proposalId];
+    }
+
     /// @notice Function to execute a proposal
     /// @param _proposalId The proposal ID
     /// @dev Only callable by an active BORG member
@@ -177,7 +199,8 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         (bool success,) = address(this).call(proposal.cdata);
         if(!success)
             revert daoVetoGrantImplant_ProposalExecutionError();
-        _deleteProposal(_proposalId);
+
+        deleteProposal(_proposalId);
         emit ProposalExecuted(_proposalId);
     }
 
@@ -188,20 +211,6 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
         if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
         return currentProposals[proposalIndex - 1];
-    }
-
-    /// @notice Internal function to delete a proposal
-    /// @param _proposalId The proposal ID
-    function _deleteProposal(uint256 _proposalId) internal {
-        uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
-        if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
-        uint256 lastProposalIndex = currentProposals.length - 1;
-        if (proposalIndex != lastProposalIndex) {
-            currentProposals[proposalIndex - 1] = currentProposals[lastProposalIndex];
-            proposalIndicesByProposalId[currentProposals[lastProposalIndex].id] = proposalIndex;
-        }
-        currentProposals.pop();
-        delete proposalIndicesByProposalId[_proposalId];
     }
 
     /// @notice Function to propose a direct grant, bypassing MetaVesT
@@ -238,9 +247,10 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
+        newProposal.duration = duration;
         proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", newProposalId);
+        bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
         address[] memory targets = new address[](1);
         targets[0] = address(this);
         uint256[] memory values = new uint256[](1);
@@ -290,9 +300,10 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
+        newProposal.duration = duration;
         proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", newProposalId);
+        bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
         address[] memory targets = new address[](1);
         targets[0] = address(this);
         uint256[] memory values = new uint256[](1);
@@ -341,16 +352,17 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
                 revert daoVetoGrantImplant_CallerNotBORGMember();
         }
 
-        bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(MetaVesT.MetaVesTDetails)", _metaVestDetails);
+        bytes memory proposalBytecode = abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails);
 
         Proposal storage newProposal = currentProposals.push();
         newProposalId = ++lastMotionId;
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
+        newProposal.duration = duration;
         proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("_deleteProposal(uint256)", newProposalId);
+        bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
         address[] memory targets = new address[](1);
         targets[0] = address(this);
         uint256[] memory values = new uint256[](1);
@@ -372,7 +384,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     /// @param _token The token address
     /// @param _recipient The recipient address
     /// @param _amount The amount to grant
-    function executeDirectGrant(address _token, address _recipient, uint256 _amount) internal {
+    function executeDirectGrant(address _token, address _recipient, uint256 _amount) external onlyThis {
 
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
@@ -388,7 +400,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     /// @param _token The token address
     /// @param _recipient The recipient address
     /// @param _amount The amount to grant
-    function executeSimpleGrant(address _token, address _recipient, uint256 _amount) internal {
+    function executeSimpleGrant(address _token, address _recipient, uint256 _amount) external onlyThis {
 
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
@@ -430,7 +442,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
 
     /// @notice Internal function to execute an advanced grant, callable only from executeProposal
     /// @param _metavestDetails The MetaVesT details
-    function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metavestDetails) internal {
+    function executeAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metavestDetails) external onlyThis {
 
          //cycle through any allocations and approve the metavest to spend the amount
         uint256 _milestoneTotal;
@@ -444,4 +456,5 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call);
   
     }
+
 }

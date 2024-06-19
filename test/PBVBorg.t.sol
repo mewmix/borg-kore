@@ -58,7 +58,7 @@ contract PBVBorgTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, 'pbv-borg-testing');
+    core = new borgCore(auth, 0x1, 'pbv-borg-testing', address(safe));
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe), false, true);
 
@@ -74,7 +74,7 @@ contract PBVBorgTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addContract(address(core));
+    core.addFullAccessContract(address(core));
 
 
     //Set the core as the guard for the safe

@@ -59,7 +59,7 @@ contract TimeConditionTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, 'time-condition-test');
+    core = new borgCore(auth, 0x1, 'time-condition-test', address(safe));
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element
@@ -81,7 +81,7 @@ contract TimeConditionTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addContract(address(core));
+    core.addFullAccessContract(address(core));
 
 
     //Set the core as the guard for the safe

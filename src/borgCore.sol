@@ -75,6 +75,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     string public constant VERSION = "1.0.0"; // contract version
     uint256 public immutable borgType; // type of the BORG
     bool unrestrictedMode = false; // flag to enable unrestricted mode for the BORG, only advisable for minimal BORG types/conditions
+    address immutable safe;
 
     /// Whitelist Mappings
     mapping(address => Recipient) public whitelistedRecipients; // mapping of recipient addresses to recipient structs
@@ -106,15 +107,17 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     error BORG_CORE_MethodCooldownActive();
     error BORG_CORE_NativeCooldownActive();
     error BORG_CORE_InvalidDocumentIndex();
+    error BORG_CORE_CallerMustBeSafe();
 
     /// Constructor
     /// @param _auth Address, BorgAuth contract address
     /// @param _borgType uint256, the type of the BORG
     /// @param _identifier string, the identifier for the BORG
     /// @dev The constructor sets the BORG type and identifier for the BORG and adds the oversight contract.
-    constructor(BorgAuth _auth, uint256 _borgType, string memory _identifier) BorgAuthACL(_auth) {
+    constructor(BorgAuth _auth, uint256 _borgType, string memory _identifier, address _safe) BorgAuthACL(_auth) {
         borgType = _borgType;
         id = _identifier;
+        safe = _safe;
     }
 
     /// checkTransaction
@@ -135,7 +138,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         bytes calldata signatures, 
         address msgSender
     ) 
-        external override
+        external override onlySafe
     {
         if(unrestrictedMode) return;
         if (value > 0 && data.length == 0) {
@@ -193,7 +196,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     }
 
     /// @dev add contract address and transaction limit to the whitelist
-    function addContract(address _contract) external onlyOwner {
+    function addFullAccessContract(address _contract) external onlyOwner {
        policy[_contract].allowed = true;
        policy[_contract].fullAccess = true;
        emit ContractAdded(_contract);
@@ -540,5 +543,10 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
             return false;
         }
         return true;
+    }
+
+    modifier onlySafe() {
+        if(msg.sender != safe) revert BORG_CORE_CallerMustBeSafe();
+        _;
     }
 }

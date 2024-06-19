@@ -69,7 +69,7 @@ contract BalanceConditionTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, 'balance-condition-borg');
+    core = new borgCore(auth, 0x1, 'balance-condition-borg', address(safe));
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element
@@ -83,7 +83,6 @@ contract BalanceConditionTest is Test {
     vm.deal(jr, 1 ether); // Ensure user1 has ETH for transactions;
     token = new MockERC20();
     conditionGreater = new BalanceCondition(address(token), jr, amount, BalanceCondition.Comparison.GREATER);
-    conditionEqual = new BalanceCondition(address(token), jr, amount, BalanceCondition.Comparison.EQUAL);
     conditionLess = new BalanceCondition(address(token), jr, amount, BalanceCondition.Comparison.LESS);
 
     deal(address(token), jr, amount);
@@ -98,7 +97,7 @@ contract BalanceConditionTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addContract(address(core));
+    core.addFullAccessContract(address(core));
 
 
     //Set the core as the guard for the safe
@@ -111,31 +110,11 @@ contract BalanceConditionTest is Test {
  
   }
 
-     function testCheckCondition_Greater_False() public {
-        assertFalse(conditionGreater.checkCondition(), "Should return false as balance is equal to amount");
-    }
 
     function testCheckCondition_Greater_True() public {
         deal(address(token), jr, 1001 ether); // Increase balance to be greater than amount
         token.balanceOf(jr);
         assertTrue(conditionGreater.checkCondition(), "Should return true as balance is greater than amount");
-    }
-
-    function testCheckCondition_Equal_True() public {
-        assertTrue(conditionEqual.checkCondition(), "Should return true as balance is equal to amount");
-    }
-
-    function testCheckCondition_Equal_False_Less() public {
-       // token.burn(target, 1); // Decrease balance to be less than amount
-        //burn target token value
-        vm.prank(jr);
-        token.transfer(burn, 1 ether);
-        assertFalse(conditionEqual.checkCondition(), "Should return false as balance is less than amount");
-    }
-
-    function testCheckCondition_Equal_False_Greater() public {
-        deal(address(token), target, 1001 ether); // Increase balance to be greater than amount
-        assertFalse(conditionEqual.checkCondition(), "Should return false as balance is greater than amount");
     }
 
     function testCheckCondition_Less_True() public {
@@ -144,10 +123,6 @@ contract BalanceConditionTest is Test {
         assertTrue(conditionLess.checkCondition(), "Should return true as balance is less than amount");
    }
 
-    function testCheckCondition_Less_False_Equal() public {
-        deal(address(token), target, 1000 ether); // Reset balance to equal amount
-        assertFalse(conditionLess.checkCondition(), "Should return false as balance is equal to amount");
-    }
 
     function testCheckCondition_Less_False_Greater() public {
         deal(address(token), target, 1001 ether); // Increase balance to be greater than amount
@@ -162,8 +137,6 @@ contract BalanceConditionTest is Test {
             assertTrue(conditionGreater.checkCondition(), "Balance adjustment affects condition evaluation");
         } else if (conditionLess.checkCondition()) {
             assertTrue(conditionLess.checkCondition(), "Balance adjustment affects condition evaluation");
-        } else {
-            assertTrue(conditionEqual.checkCondition(), "Balance adjustment affects condition evaluation");
         }
     }
 

@@ -60,7 +60,7 @@ contract dmSwitchTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, "dead-man-switch-test");
+    core = new borgCore(auth, 0x1, "dead-man-switch-test", address(safe));
     //create SignatureCondition.Logic for and
 
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element
@@ -85,9 +85,9 @@ contract dmSwitchTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addContract(address(core));
+    core.addFullAccessContract(address(core));
     vm.prank(dao);
-    core.addContract(address(MULTISIG));
+    core.addFullAccessContract(address(MULTISIG));
 
 
     //Set the core as the guard for the safe

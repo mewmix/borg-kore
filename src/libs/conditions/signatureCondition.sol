@@ -44,15 +44,13 @@ contract SignatureCondition is BaseCondition {
         threshold = _threshold;
         logic = _logic;
 
-        uint8 signerCount = 0;
         for (uint256 i = 0; i < _signers.length; ) {
             isSigner[_signers[i]] = true;
             unchecked {
                 i++; // will not overflow without hitting gas limit
-                signerCount++;
             }
         }
-        numSigners = signerCount;
+        numSigners = _signers.length;
     }
 
     /// @notice Function to sign the condition

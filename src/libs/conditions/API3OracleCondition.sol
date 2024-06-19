@@ -17,13 +17,13 @@ contract API3OracleCondition is BaseCondition {
     }
 
     // 60 seconds * 60 minutes * 24 hours
-    uint256 internal constant ONE_DAY = 86400;
+    uint256 internal immutable duration;
 
     IProxy internal immutable proxyAddress;
     Condition private immutable condition;
     int256 private immutable conditionValue;
 
-    error ValueCondition_ValueOlderThanOneDay();
+    error ValueCondition_ValueOlderThanThreshold();
 
     /// @param _proxyAddress address of data feed proxy, most commonly obtained from the API3 Market (market.api3.org)
     /// @param _conditionValue integer value which is subject to the '_condition'
@@ -31,11 +31,13 @@ contract API3OracleCondition is BaseCondition {
     constructor(
         address _proxyAddress,
         int224 _conditionValue,
-        Condition _condition
+        Condition _condition,
+        uint256 _duration
     ) {
         proxyAddress = IProxy(_proxyAddress);
         conditionValue = _conditionValue;
         condition = _condition;
+        duration = _duration;
     }
 
     /// @notice Compares the value returned by the proxy to the target value to return if the condition passes or fails
@@ -43,8 +45,8 @@ contract API3OracleCondition is BaseCondition {
     function checkCondition() public view override returns (bool) {
         (int224 _returnedValue, uint32 _timestamp) = proxyAddress.read();
         // require a value update within the last day to prevent a stale value
-        if (block.timestamp - _timestamp > ONE_DAY)
-            revert ValueCondition_ValueOlderThanOneDay();
+        if (block.timestamp - _timestamp > duration)
+            revert ValueCondition_ValueOlderThanThreshold();
 
         if (condition == Condition.GREATER) {
             return _returnedValue > conditionValue;

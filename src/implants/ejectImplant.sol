@@ -47,7 +47,7 @@ contract ejectImplant is BaseImplant {
     /// @notice ejectOwner for the DAO or oversight BORG to eject a BORG member from the Safe
     /// @param _owner address of the BORG member to be ejected from the Safe
     /// @param _threshold updating the minimum number of 'owners' required to approve a transaction to this value
-    function ejectOwner(address _owner, uint256 _threshold, bool _initiateRecovery) external onlyOwner {
+    function ejectOwner(address _owner, uint256 _threshold, bool _initiateRecovery) external onlyOwner conditionCheck {
         if(!ALLOW_AUTH_EJECT) revert ejectImplant_ActionNotEnabled();
         if (!checkConditions()) revert ejectImplant_ConditionsNotMet();
 
@@ -182,7 +182,7 @@ contract ejectImplant is BaseImplant {
 
         uint256 threshold = ISafe(BORG_SAFE).getThreshold();
 
-        if(_reduce && (threshold > 1) && (owners.length > threshold)){
+        if(_reduce && (threshold > 1)){
            threshold = threshold-1;
         }
 

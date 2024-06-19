@@ -31,14 +31,18 @@ contract ChainLinkOracleCondition is BaseCondition {
     AggregatorV3Interface internal immutable priceFeed;
     int256 private immutable conditionPrice;
     Condition private immutable condition;
+    uint256 private immutable acceptableDuration;
+
+    error ChainLinkOracleCondition_ValueOlderThanThreshold();
 
     /// @param _oracleAddress address of the ChainLink Oracle contract
     /// @param _conditionPrice int256 value of the price to compare the oracle price to
     /// @param _condition enum which defines whether the oracle price is greater than, equal to, or less than the '_conditionPrice'
-    constructor(address _oracleAddress, int256 _conditionPrice, Condition _condition) {
+    constructor(address _oracleAddress, int256 _conditionPrice, Condition _condition, uint256 _duration) {
         priceFeed = AggregatorV3Interface(_oracleAddress);
         conditionPrice = _conditionPrice;
         condition = _condition;
+        acceptableDuration = _duration;
     }
 
     /// @notice Compares the current price from the ChainLink Oracle to the target price to return if the condition passes or fails
@@ -48,9 +52,13 @@ contract ChainLinkOracleCondition is BaseCondition {
             /* uint80 roundID */,
             int256 price,
             /* uint256 startedAt */,
-            /* uint256 timeStamp */,
+             uint256 updatedAt,
             /* uint80 answeredInRound */
         ) = priceFeed.latestRoundData();
+
+        if(updatedAt - block.timestamp > acceptableDuration) {
+            revert ChainLinkOracleCondition_ValueOlderThanThreshold();
+        }
 
         if (condition == Condition.GREATER) {
             return price > conditionPrice;

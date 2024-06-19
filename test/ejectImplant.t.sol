@@ -46,7 +46,7 @@ contract EjectTest is Test {
     vm.prank(dao);
     auth = new BorgAuth();
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, "eject-testing");
+    core = new borgCore(auth, 0x1, "eject-testing", address(safe));
     
     failSafe = new failSafeImplant(auth, address(safe), dao);
     eject = new ejectImplant(auth, MULTISIG, address(failSafe), true, true);
@@ -60,7 +60,7 @@ contract EjectTest is Test {
     executeSingle(getAddEjectModule(address(eject)));
 
     vm.prank(dao);
-    core.addContract(address(core));
+    core.addFullAccessContract(address(core));
 
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);

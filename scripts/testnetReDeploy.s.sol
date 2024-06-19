@@ -59,7 +59,7 @@ contract BaseScript is Script {
             metaVesT = new MetaVesT(MULTISIG, controllerAddr, MULTISIG, address(govToken));
 
             safe = IGnosisSafe(MULTISIG);
-            core = new borgCore(auth, 0x1, 'test-net-deploy-borg');
+            core = new borgCore(auth, 0x1, 'test-net-deploy-borg', address(safe));
             failSafe = new failSafeImplant(auth, address(safe), address(this));
             eject = new ejectImplant(auth, MULTISIG, address(failSafe));
             opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesT), address(metaVesTController));
@@ -75,7 +75,7 @@ contract BaseScript is Script {
             executeSingle(getAddModule(address(voteGrant)));
 
             //dao deploys the core, with the dao as the owner.
-            core.addContract(address(core));
+            core.addFullAccessContract(address(core));
             //Set the core as the guard for the safe
             executeSingle(getSetGuardData(address(MULTISIG)));
             vm.stopBroadcast();
