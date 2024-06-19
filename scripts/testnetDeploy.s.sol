@@ -84,12 +84,18 @@ contract BaseScript is Script {
             //dao deploys the core, with the dao as the owner.
             core.addFullAccessContract(address(core));
             core.addFullAccessContract(address(safe));
-            core.addFullAccessContract(address(op));
-            core.addFullAccessContract(address(veto));
-            core.addFullAccessContract(address(vote));
+            core.addFullAccessContract(address(opGrant));
+            core.addFullAccessContract(address(vetoGrant));
+            core.addFullAccessContract(address(voteGrant));
             core.addFullAccessContract(address(govToken));
+                                         
             govToken.transfer(MULTISIG, 100000000000 * 10**18);
             govToken.transfer(gxpl,      10000000000 * 10**18);
+            opGrant.setGrantLimits(10, 1728380215);
+            opGrant.addApprovedGrantToken(address(govToken), 1000000000 * 10**18, 50000000000 * 10**18);
+            vetoGrant.addApprovedGrantToken(address(govToken), 50000000000 * 10**18);
+            vetoGrant.updateDuration(1 hours);
+
             //Set the core as the guard for the safe
             executeSingle(getSetGuardData(address(MULTISIG)));
             vm.stopBroadcast();
