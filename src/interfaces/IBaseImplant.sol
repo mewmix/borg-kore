@@ -13,7 +13,7 @@ interface IBaseImplant {
     /// @dev The `governanceProposalId` is not used by the implant directly, 
     /// but is provided so that frontends can link the pending proposal to the 
     /// governance proposal that will execute or veto it.
-    event PendingProposalCreated(uint256 pendingProposalId, uint256 governanceProposalId);
+    event PendingProposalCreated(uint256 indexed pendingProposalId, uint256 indexed governanceProposalId);
     
     function BORG_SAFE() external view returns (address);
     function IMPLANT_ID() external view returns (uint256);
