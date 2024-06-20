@@ -16,7 +16,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     uint256 public immutable IMPLANT_ID = 3;
 
     // Governance Vars
-    uint256 public lastMotionId;
+    uint256 public lastProposalId;
     address public governanceAdapter;
     address public governanceExecutor;
 
@@ -71,10 +71,10 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
     event ThresholdUpdated(uint256 newThreshold);
     event GovernanceAdapterSet(address indexed governanceAdapter);
     event BorgVoteToggled(bool requireBorgVote);
-    event DirectGrantProposed(address indexed token, address indexed recipient, uint256 amount, uint256 proposalId, uint256 vetoPropId);
-    event SimpleGrantProposed(address indexed token, address indexed recipient, uint256 amount, uint256 proposalId, uint256 vetoPropId);
-    event AdvancedGrantProposed(MetaVesT.MetaVesTDetails metavestDetails, uint256 proposalId, uint256 vetoPropId);
-    event ProposalExecuted(uint256 proposalId);
+    event DirectGrantProposed(uint256 indexed proposalId, address indexed token, address indexed recipient, uint256 amount);
+    event SimpleGrantProposed(uint256 indexed proposalId, address indexed token, address indexed recipient, uint256 amount);
+    event AdvancedGrantProposed(uint256 indexed proposalId, MetaVesT.MetaVesTDetails metavestDetails);
+    event ProposalExecuted(uint256 indexed proposalId);
 
     // Proposal Storage and mappings
     Proposal[] public currentProposals;
@@ -102,7 +102,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         quorum = _quorum;
         threshold = _threshold;
         waitingPeriod = _waitingPeriod;
-        lastMotionId=0;
+        lastProposalId=0;
         governanceAdapter = _governanceAdapter;
         governanceExecutor = _governanceExecutor;
         metaVesTController = MetaVesTController(_metaVestController);
@@ -243,28 +243,32 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes memory proposalBytecode = abi.encodeWithSignature("executeDirectGrant(address,address,uint256)", _token, _recipient, _amount);
        
         Proposal storage newProposal = currentProposals.push();
-        newProposalId = ++lastMotionId;
+        newProposalId = ++lastProposalId;
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
         newProposal.duration = duration;
         proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
-        address[] memory targets = new address[](1);
-        targets[0] = address(this);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory vetoBytecodes = new bytes[](1);
-        vetoBytecodes[0] = vetoBytecode;
 
         if(governanceAdapter != address(0))
         {
+            bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
+            address[] memory targets = new address[](1);
+            targets[0] = address(this);
+            uint256[] memory values = new uint256[](1);
+            values[0] = 0;
+            bytes[] memory vetoBytecodes = new bytes[](1);
+            vetoBytecodes[0] = vetoBytecode;
             vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
             vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            emit PendingProposalCreated(newProposalId, vetoProposalId);
+        } else {
+            emit PendingProposalCreated(newProposalId, 0);
         }
+        
        lastProposalTime = block.timestamp;
-       emit DirectGrantProposed(_token, _recipient, _amount, newProposalId, vetoProposalId);
+       emit DirectGrantProposed(newProposalId, _token, _recipient, _amount);
     }
 
     /// @notice Function to propose a simple grant, using MetaVest for claiming
@@ -296,29 +300,32 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes memory proposalBytecode = abi.encodeWithSignature("executeSimpleGrant(address,address,uint256)", _token, _recipient, _amount);
      
         Proposal storage newProposal = currentProposals.push();
-        newProposalId = ++lastMotionId;
+        newProposalId = ++lastProposalId;
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
         newProposal.duration = duration;
         proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
-        address[] memory targets = new address[](1);
-        targets[0] = address(this);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory vetoBytecodes = new bytes[](1);
-        vetoBytecodes[0] = vetoBytecode;
 
         if(governanceAdapter != address(0))
         {
+            bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
+            address[] memory targets = new address[](1);
+            targets[0] = address(this);
+            uint256[] memory values = new uint256[](1);
+            values[0] = 0;
+            bytes[] memory vetoBytecodes = new bytes[](1);
+            vetoBytecodes[0] = vetoBytecode;
             vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
             vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            emit PendingProposalCreated(newProposalId, vetoProposalId);
+        } else {
+            emit PendingProposalCreated(newProposalId, 0);
         }
 
         lastProposalTime = block.timestamp;
-        emit SimpleGrantProposed(_token, _recipient, _amount, newProposalId, vetoProposalId);
+        emit SimpleGrantProposed(newProposalId, _token, _recipient, _amount); 
     }
 
     /// @notice Function to propose an advanced grant, using MetaVest for advanced vesting/unlocking types
@@ -355,29 +362,32 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
         bytes memory proposalBytecode = abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails);
 
         Proposal storage newProposal = currentProposals.push();
-        newProposalId = ++lastMotionId;
+        newProposalId = ++lastProposalId;
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
         newProposal.cdata = proposalBytecode;
         newProposal.duration = duration;
         proposalIndicesByProposalId[newProposalId] = currentProposals.length;
 
-        bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
-        address[] memory targets = new address[](1);
-        targets[0] = address(this);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory vetoBytecodes = new bytes[](1);
-        vetoBytecodes[0] = vetoBytecode;
 
         if(governanceAdapter != address(0))
         {
+            bytes memory vetoBytecode = abi.encodeWithSignature("deleteProposal(uint256)", newProposalId);
+            address[] memory targets = new address[](1);
+            targets[0] = address(this);
+            uint256[] memory values = new uint256[](1);
+            values[0] = 0;
+            bytes[] memory vetoBytecodes = new bytes[](1);
+            vetoBytecodes[0] = vetoBytecode;
             vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
             vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            emit PendingProposalCreated(newProposalId, vetoProposalId);
+        } else {
+            emit PendingProposalCreated(newProposalId, 0);
         }
 
         lastProposalTime = block.timestamp;
-        emit AdvancedGrantProposed(_metaVestDetails, newProposalId, vetoProposalId);
+        emit AdvancedGrantProposed(newProposalId, _metaVestDetails);
     }
 
     /// @notice Internal function to execute a direct grant, callable only from executeProposal
