@@ -55,7 +55,7 @@ contract daoVoteGrantImplant is BaseImplant {
     error daoVoteGrantImplant_ApprovalFailed();
     error daoVoteGrantImplant_GrantFailed();
 
-    event GrantProposalCreated(address token, address recipient, uint256 amount, string desc, uint256 proposalId);
+    event GrantProposalCreated(uint256 indexed proposalId, address indexed token, address indexed recipient, uint256 amount, string desc);
     event GrantProposalExecuted(address token, address recipient, uint256 amount, string desc);
     event DurationUpdated(uint256 duration);
     event QuorumUpdated(uint256 quorum);
@@ -154,20 +154,24 @@ contract daoVoteGrantImplant is BaseImplant {
                 revert daoVoteGrantImplant_CallerNotBORGMember();
          }
 
-        bytes memory proposalBytecode = abi.encodeWithSignature("executeDirectGrant(address,address,uint256)", _token, _recipient, _amount);
-        address[] memory targets = new address[](1);
-        targets[0] = address(this);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory proposalBytecodes = new bytes[](1);
-        proposalBytecodes[0] = proposalBytecode;
 
         if(governanceAdapter != address(0))
         {
+            bytes memory proposalBytecode = abi.encodeWithSignature("executeDirectGrant(address,address,uint256)", _token, _recipient, _amount);
+            address[] memory targets = new address[](1);
+            targets[0] = address(this);
+            uint256[] memory values = new uint256[](1);
+            values[0] = 0;
+            bytes[] memory proposalBytecodes = new bytes[](1);
+            proposalBytecodes[0] = proposalBytecode;
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, proposalBytecodes, _desc, quorum, threshold, duration);
             proposalDetails[proposalId] = proposalDetail(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+            emit PendingProposalCreated(proposalId, proposalId);
+        } else {
+            emit PendingProposalCreated(proposalId, 0);
         }
-        emit GrantProposalCreated(_token, _recipient, _amount, _desc, proposalId);
+        
+        emit GrantProposalCreated(proposalId, _token, _recipient, _amount, _desc); 
     }
 
     /// @notice Propose a simple grant to a recipient, using metavest to transfer the tokens
@@ -190,20 +194,24 @@ contract daoVoteGrantImplant is BaseImplant {
                 revert daoVoteGrantImplant_CallerNotBORGMember();
          }
 
-        bytes memory proposalBytecode = abi.encodeWithSignature("executeSimpleGrant(address,address,uint256)", _token, _recipient, _amount);
-        address[] memory targets = new address[](1);
-        targets[0] = address(this);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory proposalBytecodes = new bytes[](1);
-        proposalBytecodes[0] = proposalBytecode;
       
         if(governanceAdapter != address(0))
         {
+            bytes memory proposalBytecode = abi.encodeWithSignature("executeSimpleGrant(address,address,uint256)", _token, _recipient, _amount);
+            address[] memory targets = new address[](1);
+            targets[0] = address(this);
+            uint256[] memory values = new uint256[](1);
+            values[0] = 0;
+            bytes[] memory proposalBytecodes = new bytes[](1);
+            proposalBytecodes[0] = proposalBytecode;
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, proposalBytecodes, _desc, quorum, threshold, duration);
             proposalDetails[proposalId] = proposalDetail(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+            emit PendingProposalCreated(proposalId, proposalId);
+        } else {
+            emit PendingProposalCreated(proposalId, 0);
         }
-        emit GrantProposalCreated(_token, _recipient, _amount, _desc, proposalId);
+        
+        emit GrantProposalCreated(proposalId, _token, _recipient, _amount, _desc);
     }
 
     /// @notice Propose an advanced grant to a recipient, using metavest to transfer the tokens
@@ -231,21 +239,24 @@ contract daoVoteGrantImplant is BaseImplant {
                 revert daoVoteGrantImplant_CallerNotBORGMember();
          }
 
-        bytes memory proposalBytecode = abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails);
-        address[] memory targets = new address[](1);
-        targets[0] = address(this);
-        uint256[] memory values = new uint256[](1);
-        values[0] = 0;
-        bytes[] memory proposalBytecodes = new bytes[](1);
-        proposalBytecodes[0] = proposalBytecode;
       
         if(governanceAdapter != address(0))
         {
+            bytes memory proposalBytecode = abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails);
+            address[] memory targets = new address[](1);
+            targets[0] = address(this);
+            uint256[] memory values = new uint256[](1);
+            values[0] = 0;
+            bytes[] memory proposalBytecodes = new bytes[](1);
+            proposalBytecodes[0] = proposalBytecode;
             proposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, proposalBytecodes, _desc, quorum, threshold, duration);
             proposalDetails[proposalId] = proposalDetail(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
-            
+            emit PendingProposalCreated(proposalId, proposalId);
+        } else {
+            emit PendingProposalCreated(proposalId, 0);
         }
-        emit GrantProposalCreated(_metaVestDetails.allocation.tokenContract, _metaVestDetails.grantee, _total, _desc, proposalId);
+        
+        emit GrantProposalCreated(proposalId, _metaVestDetails.allocation.tokenContract, _metaVestDetails.grantee, _total, _desc); 
     }
 
     /// @notice Execute a proposal a direct grant, only callable by the governance executor
