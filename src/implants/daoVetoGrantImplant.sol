@@ -275,7 +275,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
             bytes[] memory vetoBytecodes = new bytes[](1);
             vetoBytecodes[0] = vetoBytecode;
             vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
-            vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            vetoProposals[vetoProposalId] = proposalDetail(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
             emit PendingProposalCreated(newProposalId, vetoProposalId);
         } else {
             emit PendingProposalCreated(newProposalId, 0);
@@ -331,7 +331,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
             bytes[] memory vetoBytecodes = new bytes[](1);
             vetoBytecodes[0] = vetoBytecode;
             vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
-            vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            vetoProposals[vetoProposalId] = proposalDetail(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
             emit PendingProposalCreated(newProposalId, vetoProposalId);
         } else {
             emit PendingProposalCreated(newProposalId, 0);
@@ -392,7 +392,7 @@ contract daoVetoGrantImplant is BaseImplant { //is baseImplant
             bytes[] memory vetoBytecodes = new bytes[](1);
             vetoBytecodes[0] = vetoBytecode;
             vetoProposalId = IGovernanceAdapter(governanceAdapter).createProposal(targets, values, vetoBytecodes, _desc, quorum, threshold, duration);
-            vetoProposals[vetoProposalId] = prop(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
+            vetoProposals[vetoProposalId] = proposalDetail(targets, values, vetoBytecodes, keccak256(abi.encodePacked(_desc)));
             emit PendingProposalCreated(newProposalId, vetoProposalId);
         } else {
             emit PendingProposalCreated(newProposalId, 0);

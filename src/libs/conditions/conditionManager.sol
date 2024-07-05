@@ -55,19 +55,17 @@ contract ConditionManager is BorgAuthACL {
 
     /// @notice iterates through the 'conditions' array, calling each 'condition' contract's 'checkCondition()' function
     /// @return result boolean of whether all conditions (accounting for each Condition's 'Logic' operator) have been satisfied
-    function checkConditions() public view returns (bool result) {
+    function checkConditions(address _contract, bytes4 _functionSignature) public view returns (bool result) {
         if (conditions.length == 0) return true;
         else {
             for (uint256 i = 0; i < conditions.length; ) {
                 if (conditions[i].op == Logic.AND) {
-                    result = ICondition(conditions[i].condition)
-                        .checkCondition();
+                    result = ICondition(conditions[i].condition).checkCondition(_contract, _functionSignature);
                     if (!result) {
                         return false;
                     }
                 } else {
-                    result = ICondition(conditions[i].condition)
-                        .checkCondition();
+                    result = ICondition(conditions[i].condition).checkCondition(_contract, _functionSignature);
                     if (result) {
                         return true;
                     }

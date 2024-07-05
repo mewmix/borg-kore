@@ -85,11 +85,15 @@ contract failSafeImplant is BaseImplant { //is baseImplant
 
     /// @notice removeTokenByIndex function to remove token from the tokenList
     /// @notice must pass the condition manager checks
-    function recoverSafeFunds() external onlyOwner conditionCheck {
+    function recoverSafeFunds() external onlyOwner conditionCheck(address(this), msg.sig) {
 
         ISafe gnosisSafe = ISafe(BORG_SAFE);
-        if(!checkConditions()) revert failSafeImplant_ConditionsNotMet();
+        if(!checkConditions(address(this), msg.sig)) revert failSafeImplant_ConditionsNotMet();
 
+        //recover native ethereum gas tokens
+        payable(RECOVERY_ADDRESS).transfer(address(BORG_SAFE).balance);
+        
+        
         for(uint256 i = 0; i < tokenList.length; i++) {
             if(tokenList[i].tokenType == 0) {
                 // Encode the call to the ERC20 token's `transfer` function
@@ -123,9 +127,9 @@ contract failSafeImplant is BaseImplant { //is baseImplant
 
     /// @notice recoverSafeFundsERC20 function to recover ERC20 tokens from the Safe, callable by Owner (DAO or oversight BORG)
     /// @param _token The address of the ERC20 token
-    function recoverSafeFundsERC20(address _token) external onlyOwner conditionCheck {
+    function recoverSafeFundsERC20(address _token) external onlyOwner conditionCheck(address(this), msg.sig) {
         // must still meet the conditions in place for the overall failSafe.
-        if(!checkConditions()) revert failSafeImplant_ConditionsNotMet();
+        if(!checkConditions(address(this), msg.sig)) revert failSafeImplant_ConditionsNotMet();
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         uint256 amountToSend = IERC20(_token).balanceOf(address(BORG_SAFE));
         bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", RECOVERY_ADDRESS, amountToSend);
@@ -138,9 +142,9 @@ contract failSafeImplant is BaseImplant { //is baseImplant
     /// @notice recoverSafeFundsERC721 function to recover ERC721 tokens from the Safe, callable by Owner (DAO or oversight BORG)
     /// @param _token The address of the ERC721 token
     /// @param _id The id of the token
-    function recoverSafeFundsERC721(address _token, uint256 _id) external onlyOwner conditionCheck {
+    function recoverSafeFundsERC721(address _token, uint256 _id) external onlyOwner conditionCheck(address(this), msg.sig) {
         // must still meet the conditions in place for the overall failSafe.
-        if(!checkConditions()) revert failSafeImplant_ConditionsNotMet();
+        if(!checkConditions(address(this), msg.sig)) revert failSafeImplant_ConditionsNotMet();
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", BORG_SAFE, RECOVERY_ADDRESS, _id);
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
@@ -151,9 +155,9 @@ contract failSafeImplant is BaseImplant { //is baseImplant
     /// @notice recoverSafeFundsERC1155 function to recover ERC1155 tokens from the Safe, callable by Owner (DAO or oversight BORG)
     /// @param _token The address of the ERC1155 token
     /// @param _id The id of the token
-    function recoverSafeFundsERC1155(address _token, uint256 _id) external onlyOwner conditionCheck {
+    function recoverSafeFundsERC1155(address _token, uint256 _id) external onlyOwner conditionCheck(address(this), msg.sig) {
         // must still meet the conditions in place for the overall failSafe.
-        if(!checkConditions()) revert failSafeImplant_ConditionsNotMet();
+        if(!checkConditions(address(this), msg.sig)) revert failSafeImplant_ConditionsNotMet();
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         //get erc1155 token amount
         uint256 _amount = IERC1155(_token).balanceOf(BORG_SAFE, _id);
