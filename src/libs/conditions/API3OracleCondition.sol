@@ -45,7 +45,8 @@ contract API3OracleCondition is BaseCondition {
     function checkCondition() public view override returns (bool) {
         (int224 _returnedValue, uint32 _timestamp) = proxyAddress.read();
         // require a value update within the last day to prevent a stale value
-        if (block.timestamp - _timestamp > duration)
+        
+        if (block.timestamp > duration + _timestamp)
             revert ValueCondition_ValueOlderThanThreshold();
 
         if (condition == Condition.GREATER) {

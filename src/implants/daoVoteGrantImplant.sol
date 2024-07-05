@@ -25,9 +25,12 @@ contract daoVoteGrantImplant is BaseImplant {
     MetaVesTController public metaVesTController;
 
     // Proposal Vars
-    uint256 public duration = 7 days; //7 days
-    uint256 public quorum = 10; //10%
-    uint256 public threshold = 40; //40%
+    uint256 public duration;
+    uint256 public quorum; 
+    uint256 public threshold; 
+
+    //Proposal Constants
+    uint256 public constant PERCENTAGE_MAX = 100;
 
     // Require BORG Vote (toggle multi-sig vote vs any BORG member)
     bool public requireBorgVote = true;
@@ -54,6 +57,8 @@ contract daoVoteGrantImplant is BaseImplant {
     error daoVoteGrantImplant_invalidToken();
     error daoVoteGrantImplant_ApprovalFailed();
     error daoVoteGrantImplant_GrantFailed();
+    error daoVoteGrantImplant_ThresholdTooHigh();
+    error daoVoteGrantImplant_QuorumTooHigh();
 
     event GrantProposalCreated(address token, address recipient, uint256 amount, string desc, uint256 proposalId);
     event GrantProposalExecuted(address token, address recipient, uint256 amount, string desc);
@@ -76,7 +81,11 @@ contract daoVoteGrantImplant is BaseImplant {
     /// @param _metaVestController - The metavest controller contract address
     constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, address _governanceAdapter, address _governanceExecutor, address _metaVestController) BaseImplant(_auth, _borgSafe) {
         duration = _duration;
+        if(_quorum > PERCENTAGE_MAX)
+            revert daoVoteGrantImplant_QuorumTooHigh();
         quorum = _quorum;
+        if(_threshold > PERCENTAGE_MAX)
+            revert daoVoteGrantImplant_ThresholdTooHigh();
         threshold = _threshold;
         governanceAdapter = _governanceAdapter;
         governanceExecutor = _governanceExecutor;
@@ -94,6 +103,8 @@ contract daoVoteGrantImplant is BaseImplant {
     /// @notice Update the default quorum for future grant proposals
     /// @param _quorum - The new quorum percentage
     function updateQuorum(uint256 _quorum) external onlyOwner {
+         if(_quorum > PERCENTAGE_MAX)
+            revert daoVoteGrantImplant_QuorumTooHigh();
         quorum = _quorum;
         emit QuorumUpdated(_quorum);
     }
@@ -101,6 +112,8 @@ contract daoVoteGrantImplant is BaseImplant {
     /// @notice Update the default threshold for future grant proposals
     /// @param _threshold - The new threshold percentage
     function updateThreshold(uint256 _threshold) external onlyOwner {
+         if(_threshold > PERCENTAGE_MAX)
+            revert daoVoteGrantImplant_ThresholdTooHigh();
          threshold = _threshold;
          emit ThresholdUpdated(_threshold);
     }
@@ -142,7 +155,8 @@ contract daoVoteGrantImplant is BaseImplant {
     /// @return proposalId - The ID of the proposal created by the governance adapter, or 0 if there is none (should be manually created)
     function proposeDirectGrant(address _token, address _recipient, uint256 _amount, string memory _desc) external returns (uint256 proposalId) {
         proposalId = 0;
-        if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
+
+         if((IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount && _token != address(0)) || (_token == address(0) && _amount > address(this).balance))
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
 
         if(requireBorgVote) {
@@ -333,6 +347,9 @@ contract daoVoteGrantImplant is BaseImplant {
         }
         uint256 _total = _metavestDetails.allocation.tokenStreamTotal +
             _milestoneTotal;
+
+        if(IERC20(_metavestDetails.allocation.tokenContract).balanceOf(address(BORG_SAFE)) < _total)
+            revert daoVoteGrantImplant_GrantSpendingLimitReached();
 
         //approve metaVest to spend the amount
         if(!ISafe(BORG_SAFE).execTransactionFromModule(_metavestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call))

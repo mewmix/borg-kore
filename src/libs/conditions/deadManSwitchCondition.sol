@@ -8,7 +8,7 @@ contract DeadManSwitchCondition is BaseCondition {
     uint256 public immutable DELAY_TIME;
     address public immutable BORG_SAFE;
 
-    uint256 private startTime = 0;
+    uint256 private startTime;
     uint256 private initialNonce;
     mapping(address => bool) public isCaller;
 

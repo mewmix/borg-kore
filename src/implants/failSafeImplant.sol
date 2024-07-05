@@ -24,9 +24,9 @@ contract failSafeImplant is BaseImplant { //is baseImplant
 
     //Token Info Struct
     struct TokenInfo {
-        address tokenAddress;
         uint256 id; // For ERC721 and ERC1155, id represents the token ID. For ERC20, this can be ignored.
         uint256 amount; // For ERC20 and ERC1155, amount represents the token amount. For ERC721, this can be ignored.
+        address tokenAddress;
         uint8 tokenType; // 0 for ERC20, 1 for ERC721, 2 for ERC1155
     }
 
@@ -101,12 +101,12 @@ contract failSafeImplant is BaseImplant { //is baseImplant
                 // Request the Safe to execute the token transfer
                 bool success = gnosisSafe.execTransactionFromModule(tokenList[i].tokenAddress, 0, data, Enum.Operation.Call);
                 if(!success) revert failSafeImplant_FailedTransfer();
-                emit FundsRecovered(tokenList[i].tokenAddress, tokenList[i].id, tokenList[i].amount, 0);
+                emit FundsRecovered(tokenList[i].tokenAddress, 0, tokenList[i].amount, 0);
             } else if(tokenList[i].tokenType == 1) {
                 bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", BORG_SAFE, RECOVERY_ADDRESS, tokenList[i].id);
                 bool success = gnosisSafe.execTransactionFromModule(tokenList[i].tokenAddress, 0, data, Enum.Operation.Call);
                 if(!success) revert failSafeImplant_FailedTransfer();
-                emit FundsRecovered(tokenList[i].tokenAddress, tokenList[i].id, tokenList[i].amount, 1);
+                emit FundsRecovered(tokenList[i].tokenAddress, tokenList[i].id, 1, 1);
             } else if(tokenList[i].tokenType == 2) {
                 uint256 amountToSend = tokenList[i].amount;
                 uint256 balance = IERC1155(tokenList[i].tokenAddress).balanceOf(BORG_SAFE, tokenList[i].id);
@@ -132,7 +132,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
         // Request the Safe to execute the token transfer
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
         if(!success) revert failSafeImplant_FailedTransfer();
-        emit FundsRecovered(_token, 0, amountToSend, 3);
+        emit FundsRecovered(_token, 0, amountToSend, 0);
     }
 
     /// @notice recoverSafeFundsERC721 function to recover ERC721 tokens from the Safe, callable by Owner (DAO or oversight BORG)
@@ -145,7 +145,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
         bytes memory data = abi.encodeWithSignature("transferFrom(address,address,uint256)", BORG_SAFE, RECOVERY_ADDRESS, _id);
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
         if(!success) revert failSafeImplant_FailedTransfer();
-        emit FundsRecovered(_token, _id, 1, 3);
+        emit FundsRecovered(_token, _id, 1, 1);
     }
 
     /// @notice recoverSafeFundsERC1155 function to recover ERC1155 tokens from the Safe, callable by Owner (DAO or oversight BORG)
@@ -160,7 +160,7 @@ contract failSafeImplant is BaseImplant { //is baseImplant
         bytes memory data = abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes)", BORG_SAFE, RECOVERY_ADDRESS, _id, _amount, "");
         bool success = gnosisSafe.execTransactionFromModule(_token, 0, data, Enum.Operation.Call);
         if(!success) revert failSafeImplant_FailedTransfer();
-        emit FundsRecovered(_token, _id, _amount, 3);
+        emit FundsRecovered(_token, _id, _amount, 2);
     }
 }
 
