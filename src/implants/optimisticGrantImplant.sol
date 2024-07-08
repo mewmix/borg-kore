@@ -111,8 +111,9 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
         if(BORG_SAFE != msg.sender)
         {
             if(!requireBorgVote)
-                if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-                    revert optimisticGrantImplant_CallerNotBORGMember();
+            {
+                if(!ISafe(BORG_SAFE).isOwner(msg.sender)) revert optimisticGrantImplant_CallerNotBORGMember();
+            }
             else revert optimisticGrantImplant_CallerNotBORG();
         }
 
@@ -153,8 +154,9 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
         if(BORG_SAFE != msg.sender)
         {
             if(!requireBorgVote)
-                if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-                    revert optimisticGrantImplant_CallerNotBORGMember();
+            {
+                if(!ISafe(BORG_SAFE).isOwner(msg.sender)) revert optimisticGrantImplant_CallerNotBORGMember();
+            }
             else revert optimisticGrantImplant_CallerNotBORG();
         }
 
@@ -217,8 +219,9 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
         if(BORG_SAFE != msg.sender)
         {
             if(!requireBorgVote)
-                if(!ISafe(BORG_SAFE).isOwner(msg.sender))
-                    revert optimisticGrantImplant_CallerNotBORGMember();
+            {
+                if(!ISafe(BORG_SAFE).isOwner(msg.sender)) revert optimisticGrantImplant_CallerNotBORGMember();
+            }
             else revert optimisticGrantImplant_CallerNotBORG();
         }
 
