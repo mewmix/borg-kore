@@ -17,7 +17,7 @@ contract API3OracleCondition is BaseCondition {
     }
 
     // 60 seconds * 60 minutes * 24 hours
-    uint256 internal immutable duration;
+    uint256 internal immutable thresholdDuration;
 
     IProxy internal immutable proxyAddress;
     Condition private immutable condition;
@@ -37,7 +37,7 @@ contract API3OracleCondition is BaseCondition {
         proxyAddress = IProxy(_proxyAddress);
         conditionValue = _conditionValue;
         condition = _condition;
-        duration = _duration;
+        thresholdDuration = _duration;
     }
 
     /// @notice Compares the value returned by the proxy to the target value to return if the condition passes or fails
@@ -46,7 +46,7 @@ contract API3OracleCondition is BaseCondition {
         (int224 _returnedValue, uint32 _timestamp) = proxyAddress.read();
         // require a value update within the last day to prevent a stale value
         
-        if (block.timestamp > duration + _timestamp)
+        if (block.timestamp > thresholdDuration + _timestamp)
             revert ValueCondition_ValueOlderThanThreshold();
 
         if (condition == Condition.GREATER) {

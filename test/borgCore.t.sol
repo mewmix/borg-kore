@@ -148,6 +148,8 @@ contract BorgCoreTest is Test {
         string[] memory _methodNames = new string[](2);
         uint256[] memory _minValues = new uint256[](2);
         uint256[] memory _maxValues = new uint256[](2);
+        int256[] memory _iminValues = new int256[](2);
+        int256[] memory _imaxValues = new int256[](2);
         borgCore.ParamType[] memory _paramTypes = new borgCore.ParamType[](2);
         bytes32[] memory _exactMatches = new bytes32[](4);
         uint256[] memory _matchNum = new uint256[](2);
@@ -159,6 +161,8 @@ contract BorgCoreTest is Test {
         _methodNames[0] = "transfer(address,uint256)";
         _minValues[0] = 0;
         _maxValues[0] = 0;
+        _imaxValues[0] = 0;
+        _iminValues[0] = 0;
         _paramTypes[0] = borgCore.ParamType.ADDRESS;
         _exactMatches[0] = keccak256(abi.encodePacked(address(owner)));
         _exactMatches[1] = keccak256(abi.encodePacked(address(dao)));
@@ -171,13 +175,15 @@ contract BorgCoreTest is Test {
         _methodNames[1] = "transfer(address,uint256)";
         _minValues[1] = 0;
         _maxValues[1] = 1 ether;
+        _imaxValues[1] = 0;
+        _iminValues[1] = 0;
         _paramTypes[1] = borgCore.ParamType.UINT;
         _matchNum[1] = 0;  // No exact matches for this
         _byteOffsets[1] = 36;
         _byteLengths[1] = 32;
 
         vm.prank(dao);
-        core.updatePolicy(_contracts, _methodNames, _minValues, _paramTypes, _maxValues, _exactMatches, _matchNum, _byteOffsets, _byteLengths);
+        core.updatePolicy(_contracts, _methodNames, _paramTypes,_minValues,  _maxValues, _iminValues, _imaxValues, _exactMatches, _matchNum, _byteOffsets, _byteLengths);
 
         // Test that the policy was correctly updated
         bytes32[] memory matches = new bytes32[](1);
@@ -355,9 +361,8 @@ contract BorgCoreTest is Test {
 
    function getNativeTransferData(address to, uint256 amount) public view returns (GnosisTransaction memory) {
 
-        bytes memory transferData;
-
-        GnosisTransaction memory txData = GnosisTransaction({to: to, value: amount, data: transferData});
+        //send the value with no data
+        GnosisTransaction memory txData = GnosisTransaction({to: to, value: amount, data: ""});
         return txData;
     }
 

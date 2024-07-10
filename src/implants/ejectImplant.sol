@@ -75,7 +75,7 @@ contract ejectImplant is BaseImplant {
         if(!success)
             revert ejectImplant_FailedTransaction();
 
-        if(_initiateRecovery && _threshold < owners.length)
+        if(_initiateRecovery)
             IFailSafeImplant(FAIL_SAFE).recoverSafeFunds();
 
         emit OwnerEjected(_owner, _threshold, _initiateRecovery);
