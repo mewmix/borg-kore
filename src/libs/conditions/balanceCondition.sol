@@ -29,7 +29,7 @@ contract BalanceCondition is BaseCondition {
 
     /// @notice Compares the balance of the target address to the target amount to return if the condition passes or fails
     /// @return bool true if the condition passes (balance is greater than, equal to, or less than the target amount), false otherwise
-    function checkCondition(address _contract, bytes4 _functionSignature) public view override returns (bool) {
+    function checkCondition(address _contract, bytes4 _functionSignature, bytes memory data) public view override returns (bool) {
         uint256 balance = IERC20(token).balanceOf(target);
         if (comparison == Comparison.GREATER) {
             return balance >= amount;

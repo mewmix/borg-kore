@@ -51,7 +51,7 @@ contract DeadManSwitchCondition is BaseCondition {
 
     /// @notice Checks if the specified delay time has passed and the Gnosis Safe nonce is unchanged
     /// @return bool true if the delay time has passed and the nonce is unchanged, false otherwise
-    function checkCondition(address _contract, bytes4 _functionSignature) public view override returns (bool) {
+    function checkCondition(address _contract, bytes4 _functionSignature, bytes memory data) public view override returns (bool) {
         if (startTime == 0) {
             return false;
         }
