@@ -76,6 +76,7 @@ contract daoVoteGrantImplant is VoteImplant {
     error daoVoteGrantImplant_GrantFailed();
     error daoVoteGrantImplant_ThresholdTooHigh();
     error daoVoteGrantImplant_QuorumTooHigh();
+    error daoVoteGrantImplant_ZeroAddress();
 
     event GrantProposalCreated(
         uint256 indexed proposalId, address indexed token, address indexed recipient, uint256 amount, string desc
@@ -179,9 +180,9 @@ contract daoVoteGrantImplant is VoteImplant {
 
     /// @notice Update the metavest controller contract address
     /// @param _metaVestController - The new metavest controller contract address
-    function setMetaVestController(address _metaVestController) external onlyOwner {
+    function setMetaVesTController(address _metaVestController) external onlyOwner {
+        if(_metaVestController == address(0)) revert daoVoteGrantImplant_ZeroAddress();  
         metaVesTController = MetaVesTController(_metaVestController);
-        metaVesT = MetaVesT(metaVesTController.metavest());
         emit MetaVesTControllerUpdated(_metaVestController);
     }
 

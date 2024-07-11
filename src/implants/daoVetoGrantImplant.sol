@@ -45,6 +45,8 @@ contract daoVetoGrantImplant is vetoImplant {
     ///         is set to false, BORG members can create proposals without the
     ///         multisig threshold requirement
     bool public requireBorgVote = true;
+    /// @notice The duration for when a proposal expires if not executed
+    uint256 public expiryTime = 60 days;
 
     // Proposal Constants
     uint256 internal constant MAX_PROPOSAL_DURATION = 30 days;
@@ -73,11 +75,13 @@ contract daoVetoGrantImplant is vetoImplant {
     error daoVetoGrantImplant_InvalidToken();
     error daoVetoGrantImplant_ProposalCooldownActive();
     error daoVetoGrantImplant_ProposalNotReady();
+    error daoVetoGrantImplant_ProposalExpired();
     error daoVetoGrantImplant_ProposalExecutionError();
     error daoVetoGrantImplant_ProposalNotFound();
     error daoVetoGrantImplant_NotAuthorized();
     error daoVetoGrantImplant_QuorumTooHigh();
     error daoVetoGrantImplant_ThresholdTooHigh();
+    error daoVetoGrantImplant_ZeroAddress();
 
 
     event GrantTokenAdded(address indexed token, uint256 spendingLimit);
@@ -93,21 +97,18 @@ contract daoVetoGrantImplant is vetoImplant {
     event SimpleGrantProposed(uint256 indexed proposalId, address indexed token, address indexed recipient, uint256 amount);
     event AdvancedGrantProposed(uint256 indexed proposalId, MetaVesT.MetaVesTDetails metavestDetails);
     event ProposalExecuted(uint256 indexed proposalId);
+    event ExpirationTimeUpdated(uint256 newExpirationTime);
+    event MetaVesTControllerUpdated(address indexed newMetaVesTController);
 
     // Proposal Storage and mappings
     Proposal[] public currentProposals;
     mapping(uint256 => proposalDetail) public vetoProposals;
     mapping(uint256 => uint256) internal proposalIndicesByProposalId;
     mapping(address => uint256) public approvedGrantTokens;
-    uint256 internal constant PERC_SCALE = 10000;
+
 
     modifier onlyThis() {
         if(msg.sender != address(this)) revert daoVetoGrantImplant_NotAuthorized();
-        _;
-    }
-
-    modifier onlyThisOrGov() {
-        if(msg.sender != address(this) && msg.sender != governanceExecutor) revert daoVetoGrantImplant_NotAuthorized();
         _;
     }
 
@@ -165,6 +166,13 @@ contract daoVetoGrantImplant is vetoImplant {
         emit GracePeriodUpdated(_gracePeriod);
     }
 
+    /// @notice Function to update the expiration time
+    /// @param _expiryTime The new expiration time
+    function updateExpirationTime(uint256 _expiryTime) external onlyOwner {
+        expiryTime = _expiryTime;
+        emit ExpirationTimeUpdated(_expiryTime);
+    }
+
     /// @notice Function to update the duration
     /// @param _duration The new duration
     function updateDuration(uint256 _duration) external onlyOwner {
@@ -197,6 +205,12 @@ contract daoVetoGrantImplant is vetoImplant {
     function setGovernanceAdapter(address _governanceAdapter) external onlyOwner {
         governanceAdapter = _governanceAdapter;
         emit GovernanceAdapterSet(_governanceAdapter);
+    }
+
+    function setMetaVesTController(address _metaVestController) external onlyOwner {
+        if(_metaVestController == address(0)) revert daoVetoGrantImplant_ZeroAddress();  
+        metaVesTController = MetaVesTController(_metaVestController);
+        emit MetaVesTControllerUpdated(_metaVestController);
     }
 
     /// @notice Function to toggle the BORG vote requirement
@@ -234,6 +248,10 @@ contract daoVetoGrantImplant is vetoImplant {
 
         if(proposal.startTime + proposal.duration + gracePeriod > block.timestamp)
             revert daoVetoGrantImplant_ProposalNotReady();
+
+        //check if proposal has expired
+        if(proposal.startTime + proposal.duration + gracePeriod + expiryTime < block.timestamp)
+            revert daoVetoGrantImplant_ProposalExpired();
 
         (bool success,) = address(this).call(proposal.cdata);
         if(!success)

@@ -257,7 +257,6 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
 
     /// @dev bulk add contracts to the whitelist with method/parameter constraints
     function updatePolicy(address[] memory _contracts, string[] memory _methodNames, ParamType[] memory _paramTypes, uint256[] memory _minValues,  uint256[] memory _maxValues, int256[] memory _iminValues, int256[] memory _imaxValues, bytes32[] memory _exactMatches, uint256[] memory _matchNum, uint256[] memory _byteOffsets, uint256[] memory _byteLengths) public onlyOwner {
-        
         if (_contracts.length != _methodNames.length ||
             _contracts.length != _minValues.length ||
             _contracts.length != _maxValues.length ||
@@ -268,6 +267,11 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
             revert BORG_CORE_ArraysDoNotMatch();
         }
         uint256 exactMatchIndex = 0;
+
+        /*In updatePolicy(_contracts, _methodNames...): should check other parameters based on _paramTypes.
+         _exactMatches should be empty for INT and UINT (in case UINT support will be added to updatePolicy(_contracts, _methodNames...)).
+          _exactMatches should be keccak256(true) or keccak256(false) for the BOOL type. It's also better to store this bool values as constants.
+           Min and max values should be 0 for types with nonempty _exactMatches.*/
 
         for (uint256 i = 0; i < _contracts.length;) {
             address contractAddress = _contracts[i];
@@ -294,11 +298,11 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
                     policy[contractAddress].allowed = true;
                     policy[contractAddress].fullAccess = true;
                 }
-            } else if (minValue>0){
+            } else if (minValue>0 && maxValue>minValue && paramType == ParamType.UINT){
                 bytes32[] memory exactMatch = new bytes32[](0);
                 _addParameterConstraint(contractAddress, methodName, paramType, minValue, maxValue, 0, 0, exactMatch, byteOffset, byteLength);
             }
-            else if (iminValue>0){
+            else if (iminValue>0 && imaxValue>iminValue && paramType == ParamType.INT){
                 bytes32[] memory exactMatch = new bytes32[](0);
                 _addParameterConstraint(contractAddress, methodName, paramType, 0, 0, iminValue, imaxValue, exactMatch, byteOffset, byteLength);
             }
@@ -468,6 +472,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         address _contract,
         bytes calldata _methodCallData
     ) public view returns (bool) {
+        if(_methodCallData.length < 4) return false;
         bytes4 methodSelector = bytes4(_methodCallData[:4]);
         MethodConstraint storage methodConstraint = policy[_contract].methods[methodSelector];
 

@@ -287,6 +287,7 @@ contract GrantBorgTest is Test {
     newTimestamp = newTimestamp + 2000; // 101
     vm.warp(newTimestamp);
     // mockDao.execute(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+    vm.prank(dao);
     voteGrant.setGovernanceExecutor(address(0x123));
     hoax(address(0x123), 1 ether);
     voteGrant.executeProposal(1);

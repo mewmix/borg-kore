@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import "../interfaces/ISafe.sol";
 import "../libs/auth.sol";
+import "forge-std/interfaces/IERC20.sol";
 import "metavest/MetaVesTController.sol";
 import "./baseImplant.sol";
 
@@ -107,6 +108,9 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
 
         if(block.timestamp >= grantTimeLimit)
             revert optimisticGrantImplant_GrantTimeLimitReached();
+
+        if((IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount && _token != address(0)) || (_token == address(0) && _amount > address(this).balance))
+            revert optimisticGrantImplant_GrantSpendingLimitReached();
         
         if(BORG_SAFE != msg.sender)
         {

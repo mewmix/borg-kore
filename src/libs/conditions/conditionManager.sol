@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import "../../interfaces/ICondition.sol";
+import "openzeppelin/contracts/interfaces/IERC165.sol";
 import "../auth.sol";
 
 /// @title ConditionManager - A contract to manage multiple conditions for a contract
@@ -17,16 +18,19 @@ contract ConditionManager is BorgAuthACL {
         address condition;
         Logic op;
     }
+    bytes4 private constant _INTERFACE_ID_BASE_CONDITION = 0x8b94fce4;
 
     // Mappings, errors, and events
     Condition[] public conditions;
     mapping(bytes4 => Condition[]) public conditionsByFunction;
-
+    
     error ConditionManager_ConditionDoesNotExist();
     error ConditionManager_ConditionNotMet();
+    error ConditionManager_InvalidCondition();
 
     event ConditionAdded(Condition);
     event ConditionRemoved(Condition);
+
 
     /// @notice Constructor to set the BorgAuth contract
     constructor(BorgAuth _auth) BorgAuthACL(_auth) {}
@@ -35,6 +39,7 @@ contract ConditionManager is BorgAuthACL {
     /// @param _op Logic enum, either 'AND' (all conditions must be true) or 'OR' (only one of the conditions must be true)
     /// @param _condition address of the condition contract
     function addCondition(Logic _op, address _condition) external onlyOwner {
+        if(!IERC165(_condition).supportsInterface(_INTERFACE_ID_BASE_CONDITION)) revert ConditionManager_InvalidCondition();
         conditions.push(Condition(_condition, _op));
         emit ConditionAdded(Condition(_condition, _op));
     }
@@ -87,6 +92,7 @@ contract ConditionManager is BorgAuthACL {
         address _condition,
         bytes4 _functionSignature
     ) external onlyOwner {
+        if(!IERC165(_condition).supportsInterface(_INTERFACE_ID_BASE_CONDITION)) revert ConditionManager_InvalidCondition();
         conditionsByFunction[_functionSignature].push(
             Condition(_condition, _op)
         );
