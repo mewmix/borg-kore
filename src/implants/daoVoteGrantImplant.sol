@@ -296,7 +296,7 @@ contract daoVoteGrantImplant is VoteImplant {
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
         }
 
-        bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate);
+        bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint160,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate);
 
         uint256 implantProposalId = _createImplantProposal(proposalBytecode);
         governanceProposalId = _createGovernanceVoteToExecuteProposalById(implantProposalId, _desc);
@@ -406,7 +406,7 @@ contract daoVoteGrantImplant is VoteImplant {
         //approve metaVest to spend the amount
         if(!ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesTController), _amount), Enum.Operation.Call))
             revert daoVoteGrantImplant_ApprovalFailed();
-        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _recipient, _metavestAllocation, emptyMilestones, 0, address(0), 0, 0), Enum.Operation.Call))
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint160,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _recipient, _metavestAllocation, emptyMilestones, 0, address(0), 0, 0), Enum.Operation.Call))
             revert daoVoteGrantImplant_GrantFailed();
 
         emit GrantProposalExecuted(_token, _recipient, _amount, "");
@@ -448,7 +448,7 @@ contract daoVoteGrantImplant is VoteImplant {
             !ISafe(BORG_SAFE).execTransactionFromModule(
                 address(metaVesTController),
                 0,
-                abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate)
+                abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint160,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate)
                 , Enum.Operation.Call)
         ) {
             revert daoVoteGrantImplant_GrantFailed();

@@ -407,7 +407,7 @@ contract daoVetoGrantImplant is vetoImplant {
                 revert daoVetoGrantImplant_CallerNotBORGMember();
         }
 
-        bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate);
+        bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint160,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate);
 
         Proposal storage newProposal = currentProposals.push();
         newProposalId = ++lastProposalId;
@@ -479,7 +479,7 @@ contract daoVetoGrantImplant is vetoImplant {
         metavestController.metavestType _type = metavestController.metavestType.Vesting;
         //approve metaVest to spend the amount
         ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesTController), _amount), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _recipient, _metavestAllocation, emptyMilestones, 0, address(0), 0, 0), Enum.Operation.Call);
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint160,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _recipient, _metavestAllocation, emptyMilestones, 0, address(0), 0, 0), Enum.Operation.Call);
   
     }
 
@@ -506,7 +506,7 @@ contract daoVetoGrantImplant is vetoImplant {
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
 
         ISafe(BORG_SAFE).execTransactionFromModule(_allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesTController), _total), Enum.Operation.Call);
-        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate), Enum.Operation.Call);
+        ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint160,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate), Enum.Operation.Call);
   
     }
 

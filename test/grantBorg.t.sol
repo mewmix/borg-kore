@@ -404,8 +404,10 @@ contract GrantBorgTest is Test {
 
    // uint256 amount = metaVesT.viewWithdrawableAmount(jr);
    // assertGt(amount, 0, "Amount should be greater than 0");
+        vm.prank(jr);
+    uint256 amount = metaVesT.getAmountWithdrawable();
     vm.prank(jr);
-    metaVesT.withdraw(metaVesT.getAmountWithdrawable());
+    metaVesT.withdraw(amount);
   }
 
     function testStreamingGrant() public {
@@ -458,7 +460,9 @@ contract GrantBorgTest is Test {
     assertGt(amount, 0, "Amount should be greater than 0");*/
 
     vm.prank(jr);
-    metaVesT.withdraw(metaVesT.getAmountWithdrawable());
+    uint256 amount = metaVesT.getAmountWithdrawable();
+    vm.prank(jr);
+    metaVesT.withdraw(amount);
 /*
     skip(1);
     amount = metaVesT.viewWithdrawableAmount(jr);

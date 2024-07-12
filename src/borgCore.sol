@@ -67,13 +67,18 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         uint256 byteLength; // length of the parameter in bytes
     }
 
+    struct LegalAgreement { 
+        string uri; // URI of the legal agreement
+        string docHash; // hash of the legal agreement document
+    }
+
     uint256 public nativeCooldown = 0; // cooldown period for native gas transfers
     uint256 public lastNativeExecutionTimestamp = 0; // timestamp of the last native gas transfer
 
     /// Identifiers
     string public id = "unnamed-borg-core"; // identifier for the BORG
     string private _daoUri; // URI for the DAO
-    string[] public legalAgreements; // array of legal agreements URIs for this BORG
+    LegalAgreement[] public legalAgreements; // array of legal agreements URIs for this BORG
     string public constant VERSION = "1.0.0"; // contract version
     uint256 public immutable borgType; // type of the BORG
     bool unrestrictedMode = false; // flag to enable unrestricted mode for the BORG, only advisable for minimal BORG types/conditions
@@ -92,12 +97,12 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     event ParameterConstraintAdded(address indexed contractAddress, string methodName, uint256 paramIndex, ParamType paramType, uint256 minValue, uint256 maxValue, bytes32[] exactMatch, uint256 byteOffset, uint256 byteLength);
     event ParameterConstraintRemoved(address indexed contractAddress, string methodName, uint256 paramIndex);
     event DaoUriUpdated(string newDaoUri);
-    event LegalAgreementAdded(string agreement);
-    event LegalAgreementRemoved(string agreement);
+    event LegalAgreementAdded(string agreement, string docHash);
+    event LegalAgreementRemoved(LegalAgreement agreement);
     event IdentifierUpdated(string newId);
     event NativeCooldownUpdated(uint256 newCooldown);
     event DelegateCallToggled(address indexed contractAddress, bool allowed);
-
+    event unrestrictedModeToggled(bool enabled);
 
     /// Errors
     error BORG_CORE_InvalidRecipient();
@@ -186,6 +191,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     /// @dev This is a function to enable unrestricted mode for the BORG, only advisable for minimal BORG types/conditions
     function changeUnrestrictedMode(bool _mode) external onlyOwner {
         unrestrictedMode = _mode;
+        emit unrestrictedModeToggled(_mode);
     }
 
     /// @dev This is post transaction execution. We can react but cannot revert what just occured.
@@ -324,17 +330,19 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     }
 
     /// @dev Function to add a legal agreement
-    /// @param _agreement string, the URI of the legal agreement
-    function addLegalAgreement(string memory _agreement) public onlyAdmin {
+    /// @param _uri string, the URI of the legal agreement
+    /// @param _docHash string, the hash of the legal agreement document
+    function addLegalAgreement(string memory _uri, string memory _docHash) public onlyAdmin {
+        LegalAgreement memory _agreement = LegalAgreement(_uri, _docHash);
         legalAgreements.push(_agreement);
-        emit LegalAgreementAdded(_agreement);
+        emit LegalAgreementAdded(_uri, _docHash);
     }
 
     /// @dev Function to remove a legal agreement
     /// @param _index uint256, the index of the legal agreement to remove
     function removeLegalAgreement(uint256 _index) public onlyAdmin {
         if(_index >= legalAgreements.length) revert BORG_CORE_InvalidDocumentIndex();
-        string memory _removedAgreement = legalAgreements[_index];
+        LegalAgreement memory _removedAgreement = legalAgreements[_index];
         legalAgreements[_index] = legalAgreements[legalAgreements.length - 1];
         legalAgreements.pop();
         emit LegalAgreementRemoved(_removedAgreement);
