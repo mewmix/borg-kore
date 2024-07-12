@@ -20,8 +20,7 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
     uint256 public grantTimeLimit;
 
     // MetaVest contracts
-    MetaVesT public metaVesT;
-    MetaVesTController public metaVesTController;
+    metavestController public metaVesTController;
 
      // Require BORG Vote (toggle multi-sig vote vs any BORG member)
     bool public requireBorgVote = true;
@@ -49,8 +48,8 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
     event GrantLimitsSet(uint256 grantCountLimit, uint256 grantTimeLimit);
     event BorgVoteToggled(bool requireBorgVote);
     event DirectGrantCreated(address token, address recipient, uint256 amount);
-    event BasicGrantCreated(address token, address recipient, uint256 amount);
-    event AdvancedGrantCreated(MetaVesT.MetaVesTDetails metavestDetails);
+    event BasicGrantCreated(address token, address newMetavest, address recipient, uint256 amount);
+    event AdvancedGrantCreated(address recipient, address newMetavest, uint256 amount, VestingAllocation.Allocation allocation);
 
     mapping(address => approvedGrantToken) public approvedGrantTokens;
 
@@ -58,8 +57,8 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
     /// @param _borgSafe address of the applicable BORG's Gnosis Safe which is adding this optimisticGrantImplant
     /// @param _metaVestController address of the MetaVesTController contract
     constructor(BorgAuth _auth, address _borgSafe, address _metaVestController) BaseImplant(_auth, _borgSafe) {
-        metaVesTController = MetaVesTController(_metaVestController);
-        metaVesT = MetaVesT(metaVesTController.metavest());
+        metaVesTController = metavestController(_metaVestController);
+
     }
 
     /// @notice Add a token to the approved grant tokens list
@@ -144,7 +143,7 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
     /// @param _token address of the token to grant
     /// @param _recipient address of the recipient
     /// @param _amount amount to grant
-    function createBasicGrant(address _token, address _recipient, uint256 _amount) external {
+    function createBasicGrant(address _token, address _recipient, uint256 _amount) external returns (address) {
 
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
@@ -164,34 +163,18 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
             else revert optimisticGrantImplant_CallerNotBORG();
         }
 
-        //Configure the metavest details
-        MetaVesT.Milestone[] memory emptyMilestones;
-        MetaVesT.MetaVesTDetails memory _metavestDetails = MetaVesT.MetaVesTDetails({
-            metavestType: MetaVesT.MetaVesTType.ALLOCATION,
-            allocation: MetaVesT.Allocation({
+         //Configure the metavest details
+        BaseAllocation.Milestone[] memory emptyMilestones;
+        BaseAllocation.Allocation memory _metavestAllocation = BaseAllocation.Allocation({
                 tokenStreamTotal: _amount,
-                tokenGoverningPower: 0,
-                tokensVested: 0,
-                tokensUnlocked: 0,
-                vestedTokensWithdrawn: 0,
-                unlockedTokensWithdrawn: 0,
                 vestingCliffCredit: uint128(_amount),
                 unlockingCliffCredit: uint128(_amount),
                 vestingRate: 1,
-                vestingStartTime: uint48(block.timestamp),
-                vestingStopTime: uint48(block.timestamp+1),
+                vestingStartTime: 0,
                 unlockRate: 1,
-                unlockStartTime: uint48(block.timestamp),
-                unlockStopTime: uint48(block.timestamp+1),
+                unlockStartTime: 0,
                 tokenContract: _token
-            }),
-            option: MetaVesT.TokenOption({exercisePrice: 0, tokensForfeited: 0, shortStopTime: uint48(0)}),
-            rta: MetaVesT.RestrictedTokenAward({repurchasePrice: 0, tokensRepurchasable: 0, shortStopTime: uint48(0)}),
-            eligibleTokens: MetaVesT.GovEligibleTokens({nonwithdrawable: false, vested: true, unlocked: true}),
-            grantee: _recipient,
-            milestones: emptyMilestones,
-            transferable: false
-        });
+            });
 
         approvedGrantToken storage approvedToken = approvedGrantTokens[_token];
         if (approvedToken.spendingLimit == 0) {
@@ -199,21 +182,32 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
         }
         if(approvedToken.amountSpent + _amount > approvedToken.spendingLimit)
             revert optimisticGrantImplant_GrantSpendingLimitReached();
-        
+
+        metavestController.metavestType _type = metavestController.metavestType.Vesting;
         //approve metaVest to spend the amount
-        if(!ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _amount), Enum.Operation.Call))
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(_token, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesTController), _amount), Enum.Operation.Call))
             revert optimisticGrantImplant_ApprovalFailed();
-        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metavestDetails), Enum.Operation.Call))
+         (bool success, bytes memory returnData) = ISafe(BORG_SAFE).execTransactionFromModuleReturnData(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _recipient, _metavestAllocation, emptyMilestones, 0, address(0), 0, 0), Enum.Operation.Call);
+         if(!success)
             revert optimisticGrantImplant_GrantFailed();
 
         approvedToken.amountSpent += _amount;
         currentGrantCount++;
-        emit BasicGrantCreated(_token, _recipient, _amount);
+        address newMetaVest = abi.decode(returnData, (address));
+        emit BasicGrantCreated(_token, newMetaVest, _recipient, _amount);
+        return newMetaVest;
     }
 
     /// @notice Create an advanced grant using metavest
-    /// @param _metaVestDetails metavest details for the grant
-     function createAdvancedGrant(MetaVesT.MetaVesTDetails calldata _metaVestDetails) external {
+    /// @param _type metavest type
+    /// @param _grantee address of the recipient
+    /// @param _allocation metavest allocation
+    /// @param _milestones metavest milestones
+    /// @param _exercisePrice exercise price
+    /// @param _paymentToken payment token
+    /// @param _shortStopDuration short stop duration
+    /// @param _longStopDate long stop date
+     function createAdvancedGrant(metavestController.metavestType _type, address _grantee,  VestingAllocation.Allocation calldata _allocation, VestingAllocation.Milestone[] calldata _milestones, uint256 _exercisePrice, address _paymentToken,  uint256 _shortStopDuration, uint256 _longStopDate) external returns (address){
 
         if(currentGrantCount >= grantCountLimit)
             revert optimisticGrantImplant_GrantCountLimitReached();
@@ -231,29 +225,32 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
 
          //cycle through any allocations and approve the metavest to spend the amount
         uint256 _milestoneTotal;
-        for (uint256 i; i < _metaVestDetails.milestones.length; ++i) {
-            _milestoneTotal += _metaVestDetails.milestones[i].milestoneAward;
+        for (uint256 i; i < _milestones.length; ++i) {
+            _milestoneTotal += _milestones[i].milestoneAward;
         }
-        uint256 _total = _metaVestDetails.allocation.tokenStreamTotal +
+        uint256 _total = _allocation.tokenStreamTotal +
             _milestoneTotal;
 
-        approvedGrantToken storage approvedToken = approvedGrantTokens[_metaVestDetails.allocation.tokenContract];
+        approvedGrantToken storage approvedToken = approvedGrantTokens[_allocation.tokenContract];
         if (approvedToken.spendingLimit == 0) {
             revert optimisticGrantImplant_invalidToken();
         }
         if(approvedToken.amountSpent + _total > approvedToken.spendingLimit)
             revert optimisticGrantImplant_GrantSpendingLimitReached();
 
-        if(_total > approvedGrantTokens[_metaVestDetails.allocation.tokenContract].maxPerGrant)
+        if(_total > approvedGrantTokens[_allocation.tokenContract].maxPerGrant)
             revert optimisticGrantImplant_GrantOverIndividualLimit();
 
-        if(!ISafe(BORG_SAFE).execTransactionFromModule(_metaVestDetails.allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesT), _total), Enum.Operation.Call))
+        if(!ISafe(BORG_SAFE).execTransactionFromModule(_allocation.tokenContract, 0, abi.encodeWithSignature("approve(address,uint256)", address(metaVesTController), _total), Enum.Operation.Call))
             revert optimisticGrantImplant_ApprovalFailed();
-        if(!ISafe(BORG_SAFE).execTransactionFromModule(address(metaVesTController), 0, abi.encodeWithSignature("createMetavestAndLockTokens((address,bool,uint8,(uint256,uint256,uint256,uint256,uint256,uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,uint208,uint48),(uint256,uint208,uint48),(bool,bool,bool),(uint256,bool,address[])[]))", _metaVestDetails), Enum.Operation.Call))
-            revert optimisticGrantImplant_GrantFailed();
+             (bool success, bytes memory returnData) = ISafe(BORG_SAFE).execTransactionFromModuleReturnData(address(metaVesTController), 0, abi.encodeWithSignature("createMetavest(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint48,uint160,uint48,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate), Enum.Operation.Call);
+       // if(!success)
+         //   revert optimisticGrantImplant_GrantFailed();
         
         approvedToken.amountSpent += _total;
         currentGrantCount++;
-        emit AdvancedGrantCreated(_metaVestDetails);
+        address newMetaVest = abi.decode(returnData, (address));
+        emit AdvancedGrantCreated(_grantee, newMetaVest, _total, _allocation);
+        return newMetaVest;
       }
 }

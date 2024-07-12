@@ -23,7 +23,8 @@ interface ISafe {
   function execTransactionFromModuleReturnData(
     address to,
     uint256 value,
-    bytes memory data
+    bytes memory data,
+    Enum.Operation operation
   ) external returns (bool success, bytes memory returnData);
 
   function isModuleEnabled(address module) external view returns (bool);
