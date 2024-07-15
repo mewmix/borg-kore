@@ -89,6 +89,17 @@ contract failSafeImplant is BaseImplant { //is baseImplant
 
         ISafe gnosisSafe = ISafe(BORG_SAFE);
         if(!checkConditions("")) revert failSafeImplant_ConditionsNotMet();
+
+        //recover native ethereum gas tokens
+        uint256 nativeAmount = address(BORG_SAFE).balance;
+         bool success = gnosisSafe.execTransactionFromModule(
+            RECOVERY_ADDRESS,
+            nativeAmount,
+            "",
+            Enum.Operation.Call
+        );
+        if(!success) revert failSafeImplant_FailedTransfer();
+        emit FundsRecovered(address(0), 0, nativeAmount, 0);
         
         for(uint256 i = 0; i < tokenList.length; i++) {
             if(tokenList[i].tokenType == 0) {
@@ -119,17 +130,6 @@ contract failSafeImplant is BaseImplant { //is baseImplant
             }
             
         }
-
-        //recover native ethereum gas tokens
-        uint256 nativeAmount = address(BORG_SAFE).balance;
-         bool success = gnosisSafe.execTransactionFromModule(
-            RECOVERY_ADDRESS,
-            nativeAmount,
-            "",
-            Enum.Operation.Call
-        );
-        if(!success) revert failSafeImplant_FailedTransfer();
-        emit FundsRecovered(address(0), 0, nativeAmount, 0);
     }
 
     /// @notice recoverSafeFundsERC20 function to recover ERC20 tokens from the Safe, callable by Owner (DAO or oversight BORG)

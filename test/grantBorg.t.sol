@@ -128,7 +128,7 @@ contract GrantBorgTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addFullAccessContract(address(core));
+    core.addFullAccessOrBlockContract(address(core));
 
 
     //Set the core as the guard for the safe
@@ -273,7 +273,7 @@ contract GrantBorgTest is Test {
   function testOpGrantBORG() public {
 
     vm.prank(dao);
-    core.addFullAccessContract(address(opGrant));
+    core.addFullAccessOrBlockContract(address(opGrant));
 
     vm.prank(dao);
     opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
@@ -733,13 +733,13 @@ function testVetodAdvancedVetoGrant() public {
     opGrant.addApprovedGrantToken(dai_addr, 2 ether, 2 ether);
 
     vm.prank(dao);
-    core.addFullAccessContract(address(opGrant));
+    core.addFullAccessOrBlockContract(address(opGrant));
 
     vm.prank(dao);
-    core.addFullAccessContract(address(metaVesTController));
+    core.addFullAccessOrBlockContract(address(metaVesTController));
 
     vm.prank(dao);
-    core.addFullAccessContract(dai_addr);
+    core.addFullAccessOrBlockContract(dai_addr);
 
     vm.prank(dao);
     opGrant.toggleBorgVote(false);

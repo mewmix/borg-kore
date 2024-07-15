@@ -60,7 +60,7 @@ contract BlackListTest is Test {
 
     vm.prank(dao);
     core.changeBorgMode(borgCore.borgModes.blacklist);
-    //core.addFullAccessContract(address(core));
+    //core.addFullAccessOrBlockContract(address(core));
     /*   function addRangeParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -104,14 +104,14 @@ contract BlackListTest is Test {
   function testGuardSaftey() public {
     executeBatch(createTestBatch());
     vm.prank(dao);
-    core.addFullAccessContract(MULTISIG);
+    core.addFullAccessOrBlockContract(MULTISIG);
   }
 
   function testBlackListOneFunction() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
 
     vm.prank(dao);
-    core.addFullAccessContract(address(mockPerm));
+    core.addFullAccessOrBlockContract(address(mockPerm));
     vm.prank(dao);
     core.addPolicyMethod(address(mockPerm), "a()");
 
@@ -130,7 +130,7 @@ contract BlackListTest is Test {
     executeSingle(getSetGuardData(address(MULTISIG)));
 
     vm.prank(dao);
-    core.addFullAccessContract(address(mockPerm));
+    core.addFullAccessOrBlockContract(address(mockPerm));
     vm.prank(dao);
     core.addPolicyMethod(address(mockPerm), "a()");
 
@@ -149,7 +149,7 @@ contract BlackListTest is Test {
     executeSingle(getSetGuardData(address(MULTISIG)));
 
     vm.prank(dao);
-    core.addFullAccessContract(address(mockPerm));
+    core.addFullAccessOrBlockContract(address(mockPerm));
     vm.prank(dao);
     core.addPolicyMethod(address(mockPerm), "a()");
 
@@ -239,11 +239,216 @@ contract BlackListTest is Test {
     executeData(txData.to, 0, txData.data);
   }
 
+    function testFailParamFunctionRemoveMethod() public {
+    executeSingle(getSetGuardData(address(MULTISIG)));
+
+    vm.prank(dao);
+    core.addFullAccessOrBlockContract(address(mockPerm));
+    vm.prank(dao);
+    core.addPolicyMethod(address(mockPerm), "a()");
+
+        bytes4 aSignature = bytes4(
+            keccak256("a()")
+        );
+
+      bytes4 transferFunctionSignature = bytes4(
+            keccak256("params(address,bool,uint256,int256,string,bytes)")
+        );
+
+        bytes memory aData = abi.encodeWithSelector(
+           aSignature
+        );
+
+        bytes memory transferData = abi.encodeWithSelector(
+           transferFunctionSignature,
+            address(owner),
+            true,
+            1 ether,
+            1 ether,
+            "",
+            ""
+        );
+
+        address[] memory _contracts = new address[](4);
+        string[] memory _methodNames = new string[](4);
+        uint256[] memory _minValues = new uint256[](4);
+        uint256[] memory _maxValues = new uint256[](4);
+        int256[] memory _iminValues = new int256[](4);
+        int256[] memory _imaxValues = new int256[](4);
+        borgCore.ParamType[] memory _paramTypes = new borgCore.ParamType[](4);
+        bytes32[] memory _exactMatches = new bytes32[](5);
+        uint256[] memory _matchNum = new uint256[](4);
+        uint256[] memory _byteOffsets = new uint256[](4);
+        uint256[] memory _byteLengths = new uint256[](4);
+
+        // Setting up the exact match for two addresses
+        _contracts[0] = address(mockPerm);
+        _methodNames[0] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[0] = 0;
+        _maxValues[0] = 0;
+        _imaxValues[0] = 0;
+        _iminValues[0] = 0;
+        _paramTypes[0] = borgCore.ParamType.ADDRESS;
+        _exactMatches[0] = keccak256(abi.encodePacked(address(owner)));
+        _exactMatches[1] = keccak256(abi.encodePacked(address(dao)));
+        _matchNum[0] = 2;
+        _byteOffsets[0] = 16;
+        _byteLengths[0] = 20;
+
+        // Setting up the range parameter constraint
+        _contracts[1] = address(mockPerm);
+        _methodNames[1] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[1] = 0;
+        _maxValues[1] = 0;
+        _imaxValues[1] = 0;
+        _iminValues[1] = 0;
+        _paramTypes[1] = borgCore.ParamType.BOOL;
+         bytes memory paddedTrue = new bytes(32);
+        paddedTrue[31] = bytes1(uint8(1)); // Set the last byte to 0x01
+        _exactMatches[2] = keccak256(abi.encode(true));//keccak256(paddedTrue);
+        _matchNum[1] = 1;  // No exact matches for this
+        _byteOffsets[1] = 36;
+        _byteLengths[1] = 32;
+
+                // Setting up the range parameter constraint
+        _contracts[2] = address(mockPerm);
+        _methodNames[2] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[2] = 0;
+        _maxValues[2] = 2 ether;
+        _imaxValues[2] = 0;
+        _iminValues[2] = 0;
+        _paramTypes[2] = borgCore.ParamType.UINT;
+        _matchNum[2] = 0;  // No exact matches for this
+        _byteOffsets[2] = 68;
+        _byteLengths[2] = 32;
+
+        // Setting up the range parameter constraint
+        _contracts[3] = address(mockPerm);
+        _methodNames[3] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[3] = 0;
+        _maxValues[3] = 0;
+        _iminValues[3] = 0;
+        _imaxValues[3] = 2 ether;
+        _paramTypes[3] = borgCore.ParamType.INT;
+        _matchNum[3] = 0;  // No exact matches for this
+        _byteOffsets[3] = 100;
+        _byteLengths[3] = 32;
+
+        vm.prank(dao);
+        core.updatePolicy(_contracts, _methodNames, _paramTypes, _minValues,  _maxValues, _iminValues, _imaxValues, _exactMatches, _matchNum, _byteOffsets, _byteLengths);
+
+        vm.prank(dao);
+        core.removePolicyMethod(address(mockPerm), "params(address,bool,uint256,int256,string,bytes)");
+
+    GnosisTransaction memory txData = GnosisTransaction({to: address(mockPerm), value: 0, data: transferData});
+    executeData(txData.to, 0, txData.data);
+
+    GnosisTransaction memory txDataa = GnosisTransaction({to: address(mockPerm), value: 0, data: aData});
+    executeData(txDataa.to, 0, txDataa.data);
+  }
+
+  function testParamFunctionRemoveContract() public {
+    executeSingle(getSetGuardData(address(MULTISIG)));
+
+    vm.prank(dao);
+    core.addFullAccessOrBlockContract(address(mockPerm));
+    vm.prank(dao);
+    core.addPolicyMethod(address(mockPerm), "a()");
+
+      bytes4 transferFunctionSignature = bytes4(
+            keccak256("params(address,bool,uint256,int256,string,bytes)")
+        );
+
+        bytes memory transferData = abi.encodeWithSelector(
+           transferFunctionSignature,
+            address(owner),
+            true,
+            1 ether,
+            1 ether,
+            "",
+            ""
+        );
+
+        address[] memory _contracts = new address[](4);
+        string[] memory _methodNames = new string[](4);
+        uint256[] memory _minValues = new uint256[](4);
+        uint256[] memory _maxValues = new uint256[](4);
+        int256[] memory _iminValues = new int256[](4);
+        int256[] memory _imaxValues = new int256[](4);
+        borgCore.ParamType[] memory _paramTypes = new borgCore.ParamType[](4);
+        bytes32[] memory _exactMatches = new bytes32[](5);
+        uint256[] memory _matchNum = new uint256[](4);
+        uint256[] memory _byteOffsets = new uint256[](4);
+        uint256[] memory _byteLengths = new uint256[](4);
+
+        // Setting up the exact match for two addresses
+        _contracts[0] = address(mockPerm);
+        _methodNames[0] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[0] = 0;
+        _maxValues[0] = 0;
+        _imaxValues[0] = 0;
+        _iminValues[0] = 0;
+        _paramTypes[0] = borgCore.ParamType.ADDRESS;
+        _exactMatches[0] = keccak256(abi.encodePacked(address(owner)));
+        _exactMatches[1] = keccak256(abi.encodePacked(address(dao)));
+        _matchNum[0] = 2;
+        _byteOffsets[0] = 16;
+        _byteLengths[0] = 20;
+
+        // Setting up the range parameter constraint
+        _contracts[1] = address(mockPerm);
+        _methodNames[1] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[1] = 0;
+        _maxValues[1] = 0;
+        _imaxValues[1] = 0;
+        _iminValues[1] = 0;
+        _paramTypes[1] = borgCore.ParamType.BOOL;
+         bytes memory paddedTrue = new bytes(32);
+        paddedTrue[31] = bytes1(uint8(1)); // Set the last byte to 0x01
+        _exactMatches[2] = keccak256(abi.encode(true));//keccak256(paddedTrue);
+        _matchNum[1] = 1;  // No exact matches for this
+        _byteOffsets[1] = 36;
+        _byteLengths[1] = 32;
+
+                // Setting up the range parameter constraint
+        _contracts[2] = address(mockPerm);
+        _methodNames[2] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[2] = 0;
+        _maxValues[2] = 2 ether;
+        _imaxValues[2] = 0;
+        _iminValues[2] = 0;
+        _paramTypes[2] = borgCore.ParamType.UINT;
+        _matchNum[2] = 0;  // No exact matches for this
+        _byteOffsets[2] = 68;
+        _byteLengths[2] = 32;
+
+        // Setting up the range parameter constraint
+        _contracts[3] = address(mockPerm);
+        _methodNames[3] = "params(address,bool,uint256,int256,string,bytes)";
+        _minValues[3] = 0;
+        _maxValues[3] = 0;
+        _iminValues[3] = 0;
+        _imaxValues[3] = 2 ether;
+        _paramTypes[3] = borgCore.ParamType.INT;
+        _matchNum[3] = 0;  // No exact matches for this
+        _byteOffsets[3] = 100;
+        _byteLengths[3] = 32;
+
+        vm.prank(dao);
+        core.updatePolicy(_contracts, _methodNames, _paramTypes, _minValues,  _maxValues, _iminValues, _imaxValues, _exactMatches, _matchNum, _byteOffsets, _byteLengths);
+
+        vm.prank(dao);
+        core.removeContract(address(mockPerm));
+
+    GnosisTransaction memory txData = GnosisTransaction({to: address(mockPerm), value: 0, data: transferData});
+    executeData(txData.to, 0, txData.data);
+  }
+
     function testSetParamFunctionFullSkip() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
 
     vm.prank(dao);
-    core.addFullAccessContract(address(mockPerm));
+    core.addFullAccessOrBlockContract(address(mockPerm));
     vm.prank(dao);
     core.addPolicyMethod(address(mockPerm), "a()");
 
@@ -337,7 +542,7 @@ contract BlackListTest is Test {
   function testFailOnDai() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(address(dai));
+    core.addFullAccessOrBlockContract(address(dai));
     executeSingle(getTransferData(address(dai), MULTISIG, .1 ether));
   }
 
@@ -449,7 +654,7 @@ contract BlackListTest is Test {
   function testFailOnDaiOverpayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(address(dai));
+    core.addFullAccessOrBlockContract(address(dai));
     vm.prank(dao);
      borgCore.ParamType _paramtype = borgCore.ParamType.UINT;
     core.addUnsignedRangeParameterConstraint(
@@ -470,7 +675,7 @@ contract BlackListTest is Test {
   function testFailOnUSDC() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(dai_addr);
+    core.addFullAccessOrBlockContract(dai_addr);
     vm.prank(dao);
     core.addRecipient(owner, .01 ether);
     executeSingle(getTransferData(dai_addr, owner, .01 ether));
@@ -481,7 +686,7 @@ contract BlackListTest is Test {
   function testFailOnUSDCLimit() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(usdc_addr);
+    core.addFullAccessOrBlockContract(usdc_addr);
 
     vm.prank(dao);
     core.addRecipient(owner, 1 ether);
@@ -492,7 +697,7 @@ contract BlackListTest is Test {
   function testFailOnNativeRug() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(address(owner));
+    core.addFullAccessOrBlockContract(address(owner));
     executeSingle(getNativeTransferData(owner, 2 ether), 2 ether);
   }
   
@@ -514,7 +719,7 @@ contract BlackListTest is Test {
   //Adding coverage tests for whitelist checks
   function testFailOnAddThenRemoveDaiContract() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    core.addFullAccessContract(address(dai));
+    core.addFullAccessOrBlockContract(address(dai));
     executeSingle(getaddRecipientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
     executeSingle(getRemoveContractGuardData(address(core), address(dai)));

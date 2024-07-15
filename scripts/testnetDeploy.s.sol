@@ -82,12 +82,12 @@ contract BaseScript is Script {
             executeSingle(getAddModule(address(failSafe)));
 
             //dao deploys the core, with the dao as the owner.
-            core.addFullAccessContract(address(core));
-            core.addFullAccessContract(address(safe));
-            core.addFullAccessContract(address(opGrant));
-            core.addFullAccessContract(address(vetoGrant));
-            core.addFullAccessContract(address(voteGrant));
-            core.addFullAccessContract(address(govToken));
+            core.addFullAccessOrBlockContract(address(core));
+            core.addFullAccessOrBlockContract(address(safe));
+            core.addFullAccessOrBlockContract(address(opGrant));
+            core.addFullAccessOrBlockContract(address(vetoGrant));
+            core.addFullAccessOrBlockContract(address(voteGrant));
+            core.addFullAccessOrBlockContract(address(govToken));
                                          
             govToken.transfer(MULTISIG, 100000000000 * 10**18);
             govToken.transfer(gxpl,      10000000000 * 10**18);

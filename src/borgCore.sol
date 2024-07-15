@@ -242,7 +242,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     }
 
     /// @dev add contract address and transaction limit to the whitelist
-    function addFullAccessContract(address _contract) external onlyOwner {
+    function addFullAccessOrBlockContract(address _contract) external onlyOwner {
        if(policy[_contract].enabled) revert BORG_CORE_InvalidContract();
        policy[_contract].enabled = true;
        policy[_contract].fullAccessOrBlock = true;
@@ -265,14 +265,14 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
 
     /// @dev remove contract address from the whitelist
     function removeContract(address _contract) external onlyOwner {
-       policy[_contract].enabled = false;
-       policy[_contract].fullAccessOrBlock = false;
-       policy[_contract].delegateCallAllowed = false;
-       //clear out the parameter constraints
+         //clear out the parameter constraints
        for(uint256 i = 0; i < policy[_contract].methodSignatures.length; i++) {
            bytes4 methodSelector = policy[_contract].methodSignatures[i];
            _removePolicyMethodSelector(_contract, methodSelector);
        }
+       policy[_contract].enabled = false;
+       policy[_contract].fullAccessOrBlock = false;
+       policy[_contract].delegateCallAllowed = false;
        //clear out the method signatures array
        delete policy[_contract].methodSignatures;
        emit ContractRemoved(_contract);

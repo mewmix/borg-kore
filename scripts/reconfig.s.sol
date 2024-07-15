@@ -47,8 +47,8 @@ contract BaseScript is Script {
             uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
             vm.startBroadcast(deployerPrivateKey);
             BorgAuth(auth).updateRole(address(mockDao), 99);
-            borgCore(core).addContract(MULTISIG);
-            borgCore(core).addContract(token);
+            borgCore(core).addFullAccessOrBlockContract(MULTISIG);
+            borgCore(core).addFullAccessOrBlockContract(token);
             ERC20(token).transfer(MULTISIG, 100000000000 * 10**18);
             ERC20(token).transfer(gxpl,      10000000000 * 10**18);
             optimisticGrantImplant(op).setGrantLimits(10, 1728380215);

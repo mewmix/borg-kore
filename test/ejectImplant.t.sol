@@ -62,7 +62,7 @@ contract EjectTest is Test {
     executeSingle(getAddEjectModule(address(failSafe)));
 
     vm.prank(dao);
-    core.addFullAccessContract(address(core));
+    core.addFullAccessOrBlockContract(address(core));
 
     deal(owner, 2 ether);
     deal(MULTISIG, 2 ether);

@@ -56,7 +56,7 @@ contract BorgCoreTest is Test {
     executeSingle(getAddEjectModule(address(eject)));
 
     vm.prank(dao);
-    core.addFullAccessContract(address(core));
+    core.addFullAccessOrBlockContract(address(core));
     /*   function addRangeParameterConstraint(
         address _contract,
         string memory _methodSignature,
@@ -100,7 +100,7 @@ contract BorgCoreTest is Test {
   function testGuardSaftey() public {
     executeBatch(createTestBatch());
     vm.prank(dao);
-    core.addFullAccessContract(MULTISIG);
+    core.addFullAccessOrBlockContract(MULTISIG);
   }
 
   /// @dev An ERC20 transfer with no whitelists set should fail.
@@ -183,7 +183,7 @@ contract BorgCoreTest is Test {
         _byteLengths[1] = 32;
 
         vm.prank(dao);
-        core.updatePolicy(_contracts, _methodNames, _paramTypes,_minValues,  _maxValues, _iminValues, _imaxValues, _exactMatches, _matchNum, _byteOffsets, _byteLengths);
+        core.updatePolicy(_contracts, _methodNames, _paramTypes, _minValues,  _maxValues, _iminValues, _imaxValues, _exactMatches, _matchNum, _byteOffsets, _byteLengths);
 
         // Test that the policy was correctly updated
         bytes32[] memory matches = new bytes32[](1);
@@ -217,7 +217,7 @@ contract BorgCoreTest is Test {
   function testFailOnDaiOverpayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(address(dai));
+    core.addFullAccessOrBlockContract(address(dai));
     vm.prank(dao);
      borgCore.ParamType _paramtype = borgCore.ParamType.UINT;
     core.addUnsignedRangeParameterConstraint(
@@ -238,7 +238,7 @@ contract BorgCoreTest is Test {
   function testFailOnUSDC() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(dai_addr);
+    core.addFullAccessOrBlockContract(dai_addr);
     vm.prank(dao);
     core.addRecipient(owner, .01 ether);
     executeSingle(getTransferData(dai_addr, owner, .01 ether));
@@ -249,7 +249,7 @@ contract BorgCoreTest is Test {
   function testFailOnUSDCLimit() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessContract(usdc_addr);
+    core.addFullAccessOrBlockContract(usdc_addr);
 
     vm.prank(dao);
     core.addRecipient(owner, 1 ether);
@@ -280,7 +280,7 @@ contract BorgCoreTest is Test {
   //Adding coverage tests for whitelist checks
   function testFailOnAddThenRemoveDaiContract() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
-    core.addFullAccessContract(address(dai));
+    core.addFullAccessOrBlockContract(address(dai));
     executeSingle(getaddRecipientGuardData(address(core), owner, .01 ether));
     executeSingle(getTransferData(address(dai), owner, .01 ether));
     executeSingle(getRemoveContractGuardData(address(core), address(dai)));

@@ -48,9 +48,9 @@ contract BaseScript is Script {
             uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
             vm.startBroadcast(deployerPrivateKey);
             //BorgAuth(auth).updateRole(address(mockDao), 99);
-            borgCore(core).addFullAccessContract(op);
-            borgCore(core).addFullAccessContract(veto);
-            borgCore(core).addFullAccessContract(vote);
+            borgCore(core).addFullAccessOrBlockContract(op);
+            borgCore(core).addFullAccessOrBlockContract(veto);
+            borgCore(core).addFullAccessOrBlockContract(vote);
             vm.stopBroadcast();
         }
 

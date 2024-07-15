@@ -45,8 +45,8 @@ contract BaseScript is Script {
             uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
             vm.startBroadcast(deployerPrivateKey);
             Auth(auth).updateRole(address(mockDao), 99);
-            borgCore(core).addContract(0x362C117C919dEC312f58a11B866356c5DBF86687);
-            borgCore(core).addContract(0x586410eFD34d1f9548434a08bDc411A56FD0EA40);
+            borgCore(core).addFullAccessOrBlockContract(0x362C117C919dEC312f58a11B866356c5DBF86687);
+            borgCore(core).addFullAccessOrBlockContract(0x586410eFD34d1f9548434a08bDc411A56FD0EA40);
             vm.stopBroadcast();
         }
 

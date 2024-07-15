@@ -97,7 +97,7 @@ contract BalanceConditionTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addFullAccessContract(address(core));
+    core.addFullAccessOrBlockContract(address(core));
 
 
     //Set the core as the guard for the safe

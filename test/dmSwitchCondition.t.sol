@@ -85,9 +85,9 @@ contract dmSwitchTest is Test {
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
-    core.addFullAccessContract(address(core));
+    core.addFullAccessOrBlockContract(address(core));
     vm.prank(dao);
-    core.addFullAccessContract(address(MULTISIG));
+    core.addFullAccessOrBlockContract(address(MULTISIG));
 
 
     //Set the core as the guard for the safe
