@@ -26,14 +26,13 @@ contract daoVetoGrantImplant is VetoImplant {
 
     // Proposal Vars
     /// @notice The duration of the DAO veto period
-    uint256 public duration = 3 days; //3 days
-    /// @notice Quorum percentage used for veto votes
-    uint256 public quorum = 3; //3%
+    uint256 public duration; // 3 days
+    /// @notice Quorum number used for veto votes most commonly # of tokens to determine quorum reached in on chain systems
+    uint256 public quorum; //
     /// @notice The percentage of votes in favor of the proposal required for it
-    ///         to pass
-    uint256 public threshold = 25; //25%
+    uint256 public threshold; 
     /// @notice Minimum time between proposals being created
-    uint256 public cooldown = 24 hours;
+    uint256 public cooldown; 
     /// @notice A period of time between an associated veto vote ending and the 
     ///         proposal being executable by a BORG member to allow for the 
     ///         veto to be executed by the DAO
@@ -70,7 +69,6 @@ contract daoVetoGrantImplant is VetoImplant {
     error daoVetoGrantImplant_CallerNotBORGMember();
     error daoVetoGrantImplant_CallerNotBORG();
     error daoVetoGrantImplant_GrantSpendingLimitReached();
-    error daoVetoGrantImplant_InvalidToken();
     error daoVetoGrantImplant_ProposalCooldownActive();
     error daoVetoGrantImplant_ProposalNotReady();
     error daoVetoGrantImplant_ProposalExpired();
@@ -271,7 +269,7 @@ contract daoVetoGrantImplant is VetoImplant {
         if(lastProposalTime + cooldown > block.timestamp)
             revert daoVetoGrantImplant_ProposalCooldownActive();
 
-        if((IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount && _token != address(0)) || approvedGrantTokens[_token] < _amount || (_token == address(0) && _amount > address(this).balance))
+        if(( _token != address(0) && IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount) || approvedGrantTokens[_token] < _amount || (_token == address(0) && _amount > address(BORG_SAFE).balance))
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
 
         if(requireBorgVote) {
@@ -444,7 +442,7 @@ contract daoVetoGrantImplant is VetoImplant {
     /// @param _amount The amount to grant
     function executeDirectGrant(address _token, address _recipient, uint256 _amount) external onlyThis {
 
-        if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
+        if(( _token != address(0) && IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount) || (_token == address(0) && _amount > address(BORG_SAFE).balance))
             revert daoVetoGrantImplant_GrantSpendingLimitReached();
 
         if(_token==address(0))

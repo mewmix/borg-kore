@@ -239,7 +239,7 @@ contract BlackListTest is Test {
     executeData(txData.to, 0, txData.data);
   }
 
-    function testFailSetParamFunction() public {
+    function testSetParamFunctionFullSkip() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
 
     vm.prank(dao);

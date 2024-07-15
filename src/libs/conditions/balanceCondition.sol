@@ -22,6 +22,7 @@ contract BalanceCondition is BaseCondition {
     /// @param _comparison enum which defines whether the proxyAddress-returned value in 'checkCondition()' must be greater than, equal to, or less than the '_conditionValue'
     constructor(address _token, address _target, uint256 _amount, Comparison _comparison) {
         token = _token;
+        IERC20(_token).balanceOf(_target); // Check if the target address is a valid ERC20 address
         target = _target;
         amount = _amount;
         comparison = _comparison;

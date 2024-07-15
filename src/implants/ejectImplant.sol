@@ -20,6 +20,7 @@ contract ejectImplant is BaseImplant {
     address public immutable FAIL_SAFE;
     bool public immutable ALLOW_AUTH_MANAGEMENT;
     bool public immutable ALLOW_AUTH_EJECT;
+    uint256 public failSafeSignerThreshold;
 
     // Errors and Events
     error ejectImplant_ConditionsNotMet();
@@ -27,6 +28,7 @@ contract ejectImplant is BaseImplant {
     error ejectImplant_InvalidFailSafeImplant();
     error ejectImplant_FailedTransaction();
     error ejectImplant_ActionNotEnabled();
+    error ejectImplant_InvalidThreshold();
 
     event OwnerEjected(address indexed owner, uint256 threshold, bool initiateRecovery);
     event OwnerSwapped(address indexed oldOwner, address indexed newOwner);
@@ -42,6 +44,13 @@ contract ejectImplant is BaseImplant {
         FAIL_SAFE = _failSafe;
         ALLOW_AUTH_MANAGEMENT = _allowManagement;
         ALLOW_AUTH_EJECT = _allowEjection;
+    }
+
+    /// @notice setFailSafeSignerThreshold for the DAO or oversight BORG to set the maximum threshold for the fail safe to be triggered
+    /// @param _threshold updating the maximum number of threshold for the fail safe to be triggered
+    function setFailSafeSignerThreshold(uint256 _threshold) external onlyOwner {
+        if(_threshold > ISafe(BORG_SAFE).getOwners().length) revert ejectImplant_InvalidThreshold();
+        failSafeSignerThreshold = _threshold;
     }
 
     /// @notice ejectOwner for the DAO or oversight BORG to eject a BORG member from the Safe
@@ -75,7 +84,7 @@ contract ejectImplant is BaseImplant {
         if(!success)
             revert ejectImplant_FailedTransaction();
 
-        if(_initiateRecovery)
+        if(_initiateRecovery && ISafe(BORG_SAFE).getThreshold() <= failSafeSignerThreshold)
             IFailSafeImplant(FAIL_SAFE).recoverSafeFunds();
 
         emit OwnerEjected(_owner, _threshold, _initiateRecovery);
@@ -204,6 +213,9 @@ contract ejectImplant is BaseImplant {
             revert ejectImplant_FailedTransaction();
 
         emit SelfEjected(msg.sender, _reduce);
+
+        if(ISafe(BORG_SAFE).getThreshold() <= failSafeSignerThreshold)
+            IFailSafeImplant(FAIL_SAFE).recoverSafeFunds();
     }
 
 }

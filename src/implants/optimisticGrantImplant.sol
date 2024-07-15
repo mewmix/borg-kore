@@ -42,6 +42,7 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
     error optimisticGrantImplant_CallerNotBORG();
     error optimisticGrantImplant_ApprovalFailed();
     error optimisticGrantImplant_GrantFailed();
+    error optimisticGrantImplant_ZeroAddress();
 
     event GrantTokenAdded(address token, uint256 spendingLimit, uint256 maxPerGrant);
     event GrantTokenRemoved(address token);
@@ -50,6 +51,7 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
     event DirectGrantCreated(address token, address recipient, uint256 amount);
     event BasicGrantCreated(address token, address newMetavest, address recipient, uint256 amount);
     event AdvancedGrantCreated(address recipient, address newMetavest, uint256 amount, VestingAllocation.Allocation allocation);
+    event MetaVesTControllerUpdated(address metaVesTController);
 
     mapping(address => approvedGrantToken) public approvedGrantTokens;
 
@@ -87,6 +89,14 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
         emit GrantLimitsSet(_grantCountLimit, _grantTimeLimit);
     }
 
+    /// @notice Update the metavest controller
+    /// @param _metaVestController address of the metavest controller
+    function setMetaVesTController(address _metaVestController) external onlyOwner {
+        if(_metaVestController == address(0)) revert optimisticGrantImplant_ZeroAddress();
+        metaVesTController = metavestController(_metaVestController);
+        emit MetaVesTControllerUpdated(_metaVestController);
+    }
+
     /// @notice Toggle the requirement for a BORG vote to create a grant
     /// @param _requireBorgVote true if a BORG vote is required, false if any BORG member can create a grant
     function toggleBorgVote(bool _requireBorgVote) external onlyOwner {
@@ -108,7 +118,7 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
         if(block.timestamp >= grantTimeLimit)
             revert optimisticGrantImplant_GrantTimeLimitReached();
 
-        if((IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount && _token != address(0)) || (_token == address(0) && _amount > address(this).balance))
+        if((_token != address(0) && IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount) || (_token == address(0) && _amount > address(BORG_SAFE).balance))
             revert optimisticGrantImplant_GrantSpendingLimitReached();
         
         if(BORG_SAFE != msg.sender)

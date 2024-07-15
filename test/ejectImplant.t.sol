@@ -180,6 +180,24 @@ contract EjectTest is Test {
     assertEq(safe.isOwner(address(owner)), false);
   }
 
+  function testEjectionWithRecovery() public {
+
+    vm.prank(dao);
+    eject.setFailSafeSignerThreshold(3);
+
+    vm.prank(dao);
+    eject.ejectOwner(tester2, 2, true);
+   
+  }
+    
+    function testSelfEjectWithRecovery() public {
+    vm.prank(dao);
+    eject.setFailSafeSignerThreshold(6);
+
+    vm.prank(owner);
+    eject.selfEject(true);
+    }
+
     /* TEST METHODS */
     //This section needs refactoring (!!) but going for speed here..
     function createTestBatch() public returns (GnosisTransaction[] memory) {

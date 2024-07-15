@@ -34,6 +34,7 @@ contract API3OracleCondition is BaseCondition {
         Condition _condition,
         uint256 _duration
     ) {
+        IProxy(_proxyAddress).read();
         proxyAddress = IProxy(_proxyAddress);
         conditionValue = _conditionValue;
         condition = _condition;

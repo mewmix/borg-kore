@@ -14,7 +14,7 @@ import "./VoteImplant.sol";
 contract daoVoteGrantImplant is VoteImplant {
     // Implant ID
     uint256 public constant IMPLANT_ID = 4;
-    uint256 public lastProposalId = 0;
+    uint256 public lastProposalId;
 
     // Governance Vars
     address public governanceAdapter;
@@ -66,10 +66,6 @@ contract daoVoteGrantImplant is VoteImplant {
     error daoVoteGrantImplant_GrantSpendingLimitReached();
     error daoVoteGrantImplant_CallerNotBORGMember();
     error daoVoteGrantImplant_CallerNotBORG();
-    error daoVoteGrantImplant_CallerNotGovernance();
-    error daoVoteGrantImplant_GrantCountLimitReached();
-    error daoVoteGrantImplant_GrantTimeLimitReached();
-    error daoVoteGrantImplant_invalidToken();
     error daoVoteGrantImplant_ApprovalFailed();
     error daoVoteGrantImplant_GrantFailed();
     error daoVoteGrantImplant_ZeroAddress();
@@ -244,7 +240,8 @@ contract daoVoteGrantImplant is VoteImplant {
         onlyGrantProposer
         returns (uint256 governanceProposalId)
     {
-         if((IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount && _token != address(0)) || (_token == address(0) && _amount > address(this).balance))
+        
+         if((_token != address(0) && IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount) || (_token == address(0) && _amount > address(BORG_SAFE).balance))
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
         
 
@@ -369,7 +366,7 @@ contract daoVoteGrantImplant is VoteImplant {
     /// @param _recipient - The recipient of the grant
     /// @param _amount - The amount of tokens to be given
     function executeDirectGrant(address _token, address _recipient, uint256 _amount) external onlyThis {
-        if (IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount) {
+        if((_token != address(0) && IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount) || (_token == address(0) && _amount > address(BORG_SAFE).balance)) {
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
         }
 

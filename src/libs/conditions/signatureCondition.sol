@@ -29,6 +29,7 @@ contract SignatureCondition is BaseCondition {
     error SignatureCondition_CallerAlreadySigned();
     error SignatureCondition_CallerHasNotSigned();
     error SignatureCondition_CallerNotSigner();
+    error SignatureCondition_InvalidZero();
 
     /// @notice Constructor to create a SignatureCondition
     /// @param _signers - An array of addresses that are signers
@@ -41,10 +42,12 @@ contract SignatureCondition is BaseCondition {
     ) {
         if (_threshold > _signers.length)
             revert SignatureCondition_ThresholdExceedsSigners();
+        if (_threshold == 0) revert SignatureCondition_InvalidZero();
         threshold = _threshold;
         logic = _logic;
 
         for (uint256 i = 0; i < _signers.length; ) {
+            if(_signers[i] == address(0)) revert SignatureCondition_InvalidZero();
             isSigner[_signers[i]] = true;
             unchecked {
                 i++; // will not overflow without hitting gas limit

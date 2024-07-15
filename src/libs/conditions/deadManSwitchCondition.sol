@@ -15,6 +15,7 @@ contract DeadManSwitchCondition is BaseCondition {
     //errors
     error DeadMansSwitchCondition_CallerNotAuthorized();
     error DeadMansSwitchCondition_FailedToGetGnosisSafeNonce();
+    error DeadManSwitchCondition_ZeroAddress();
 
     //events
     event DeadMansSwitchInitiated(uint256 startTime, uint256 initialNonce);
@@ -24,6 +25,7 @@ contract DeadManSwitchCondition is BaseCondition {
     /// @param _gnosisSafe address of the Gnosis Safe contract
     constructor(uint256 _delayTime, address _gnosisSafe, address[] memory _callers) {
         DELAY_TIME = _delayTime;
+        if(_gnosisSafe == address(0)) revert DeadManSwitchCondition_ZeroAddress();
         BORG_SAFE = _gnosisSafe;
         for (uint256 i = 0; i < _callers.length;) {
             isCaller[_callers[i]] = true;

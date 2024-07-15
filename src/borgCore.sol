@@ -216,6 +216,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     }
 
     /// @dev This is a function to switch the BORG mode to whitelisted, blacklisted, or unrestricted. The later two only advisable for minimal BORG types
+    /// @param _mode borgModes, whitelist, blacklist, unrestricted
     function changeBorgMode(borgModes _mode) external onlyOwner {
         borgMode = _mode;
     }
@@ -227,6 +228,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
 
     /// @dev add recipient address and transaction limit to the whitelist
     function addRecipient(address _recipient, uint256 _transactionLimit) external onlyOwner {
+        if(_recipient == address(0)) revert BORG_CORE_InvalidRecipient();
         whitelistedRecipients[_recipient] = Recipient(true, _transactionLimit);
         emit RecipientAdded(_recipient, _transactionLimit);
     }
@@ -239,11 +241,15 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
 
     /// @dev add contract address and transaction limit to the whitelist
     function addFullAccessContract(address _contract) external onlyOwner {
+       if(policy[_contract].enabled) revert BORG_CORE_InvalidContract();
        policy[_contract].enabled = true;
        policy[_contract].fullAccessOrBlock = true;
        emit ContractAdded(_contract);
     }
 
+    /// @dev toggle if delegate calls are allowed for a contract
+    /// @param _contract address, the address of the contract
+    /// @param _allowed bool, the flag to allow delegate calls
     function toggleDelegateCallContract(address _contract, bool _allowed) external onlyOwner {
        //ensure the contract is allowed before enabling delegate calls
        if(policy[_contract].enabled == true)
@@ -282,9 +288,16 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         }
     }
 
+    /// @notice Function to add a contract method to the whitelist with parameter constraints
+    /// @dev contract must already be enabled, method must not be enabled yet
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
     function addPolicyMethod(address _contract, string memory _methodSignature) public onlyOwner {
         bytes4 methodSelector = bytes4(keccak256(bytes(_methodSignature)));
+
+        //contract must already be enabled
         if(!policy[_contract].enabled) revert BORG_CORE_InvalidContract();
+        //method must not be enabled yet
         if(policy[_contract].methods[methodSelector].enabled) revert BORG_CORE_InvalidContract();
         policy[_contract].methods[methodSelector].enabled = true;
         policy[_contract].fullAccessOrBlock = false;
@@ -301,6 +314,9 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         emit PolicyMethodAdded(_contract, _methodSignature);
     }
 
+    /// @notice Function to add a parameter constraint for a contract method using a methodSig string
+    /// @param _contract address, the address of the contract
+    /// @param _methodSignature string, the signature of the method
     function removePolicyMethod(address _contract, string memory _methodSignature) public onlyOwner {
         bytes4 methodSelector = bytes4(keccak256(bytes(_methodSignature)));
         MethodConstraint storage methodConstraint = policy[_contract].methods[methodSelector];
@@ -331,7 +347,10 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         emit PolicyMethodRemoved(_contract, _methodSignature);
     }
 
-        function _removePolicyMethodSelector(address _contract, bytes4 _methodSelector) internal {
+    /// @notice internal function to clean up the method constraints from a methodSelector
+    /// @param _contract address, the address of the contract
+    /// @param _methodSelector bytes4, the method selector 
+    function _removePolicyMethodSelector(address _contract, bytes4 _methodSelector) internal {
         bytes4 methodSelector = _methodSelector;
         MethodConstraint storage methodConstraint = policy[_contract].methods[methodSelector];
         if(!policy[_contract].enabled) revert BORG_CORE_InvalidContract();
@@ -373,11 +392,6 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
             revert BORG_CORE_ArraysDoNotMatch();
         }
         uint256 exactMatchIndex = 0;
-
-        /*In updatePolicy(_contracts, _methodNames...): should check other parameters based on _paramTypes.
-         _exactMatches should be empty for INT and UINT (in case UINT support will be added to updatePolicy(_contracts, _methodNames...)).
-          _exactMatches should be keccak256(true) or keccak256(false) for the BOOL type. It's also better to store this bool values as constants.
-           Min and max values should be 0 for types with nonempty _exactMatches.*/
 
         for (uint256 i = 0; i < _contracts.length;) {
             address contractAddress = _contracts[i];

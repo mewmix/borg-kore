@@ -186,6 +186,90 @@ contract GrantBorgTest is Test {
        
   }
 
+  function testNativeOpGrant() public {
+
+    deal(MULTISIG, 4 ether);
+
+    vm.prank(dao);
+    opGrant.toggleBorgVote(false);
+
+    vm.prank(dao);
+    opGrant.addApprovedGrantToken(address(0), 2 ether, 2 ether);
+
+    vm.prank(dao);
+    opGrant.setGrantLimits(1, block.timestamp +2592000); // 1 grant by march 31, 2024
+
+    vm.prank(owner);
+    opGrant.createDirectGrant(address(0), address(jr), 1 ether);
+
+    //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+    function testNativeVetoGrant() public {
+
+    deal(MULTISIG, 4 ether);
+
+     uint256 newTimestamp = block.timestamp;
+    vm.prank(dao);
+    vetoGrant.toggleBorgVote(false);
+
+    vm.prank(dao);
+    vetoGrant.addApprovedGrantToken(address(0), 2 ether);
+
+    vm.prank(owner);
+    vetoGrant.proposeDirectGrant(address(0), address(jr), 1 ether,  "string to ipfs link");
+    skip(259205);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    //vm.prank(owner);
+    //vetoGrant.executeProposal(id);
+    //assertion
+    //vm.prank(dao);
+    //vetoGrant.setGovernanceExecutor(address(0x123));
+    //hoax(address(0x123), 1 ether);
+    //voteGrant.executeProposal(1);
+    vm.prank(owner);
+    vetoGrant.executeProposal(1);
+  }
+
+    function testNativeVoteGrant() public {
+
+    deal(MULTISIG, 4 ether);
+  uint256 startTimestamp = block.timestamp;
+  
+    vm.prank(dao);
+    voteGrant.toggleBorgVote(false);
+    vm.prank(owner);
+    uint256 grantId = voteGrant.proposeDirectGrant(address(0), address(jr), 1 ether, "ipfs link to grant details");
+    //warp ahead 100 blocks
+    uint256 newTimestamp = startTimestamp + 1000; // 101
+    vm.warp(newTimestamp);
+    //skip(1000);
+    assertTrue(govToken.balanceOf(address(this)) == 1e30);
+    // assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Active);
+    // mockDao.castVote(grantId, 1);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    //create a new prop struct from daoVoteGrantImplant
+   // daoVoteGrantImplant.prop memory proposal = daoVoteGrantImplant.prop({targets: new address[](1), values: new uint256[](1), proposalBytecodes: new bytes[](1), desc: "ipfs link to grant details"});
+   // daoVoteGrantImplant.prop memory proposal = voteGrant.proposals(grantId);
+    // daoVoteGrantImplant.governanceProposalDetail memory proposal = voteGrant.getGovernanceProposalDetails(grantId);
+ // Check if the proposal was successful
+    // assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Succeeded);
+    // mockDao.getVotes(grantId);
+    // mockDao.getSupportVotes(grantId);
+    // mockDao.voteSucceeded(grantId);
+    // mockDao.quorumReached(grantId);
+   // mockDao.queue(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    // mockDao.execute(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+    vm.prank(dao);
+    voteGrant.setGovernanceExecutor(address(0x123));
+    hoax(address(0x123), 1 ether);
+    voteGrant.executeProposal(1);
+  }
+
   function testOpGrantBORG() public {
 
     vm.prank(dao);
