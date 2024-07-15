@@ -99,6 +99,10 @@ contract GrantBorgTest is Test {
     vm.prank(dao);
     auth.updateRole(address(voteGrant), 98);
     vm.prank(dao);
+    auth.updateRole(address(vetoGrant), 98);
+    vm.prank(dao);
+    auth.updateRole(address(opGrant), 98);
+    vm.prank(dao);
     auth.updateRole(address(governanceAdapter), 98);
 
     //create SignatureCondition.Logic for and
@@ -120,6 +124,7 @@ contract GrantBorgTest is Test {
     executeSingle(getAddModule(address(eject)));
     executeSingle(getAddModule(address(opGrant)));
     executeSingle(getAddModule(address(vetoGrant)));
+    executeSingle(getAddModule(address(voteGrant)));
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
@@ -238,18 +243,179 @@ contract GrantBorgTest is Test {
 
   }
 
-    function testVetoGrant() public {
+    function testSimpleVetoGrant() public {
+
+    uint256 newTimestamp = block.timestamp;
+    vm.prank(dao);
+    vetoGrant.toggleBorgVote(false);
 
     vm.prank(dao);
     vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
 
     vm.prank(owner);
-   // vetoGrant.proposeSimpleGrant(dai_addr, address(jr), 2 ether);
+    vetoGrant.proposeSimpleGrant(dai_addr, address(jr), 2 ether, "string to ipfs link");
     skip(259205);
-
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
     //vm.prank(owner);
     //vetoGrant.executeProposal(id);
     //assertion
+    //vm.prank(dao);
+    //vetoGrant.setGovernanceExecutor(address(0x123));
+    //hoax(address(0x123), 1 ether);
+    //voteGrant.executeProposal(1);
+    vm.prank(owner);
+    vetoGrant.executeProposal(1);
+  }
+
+function testDirectVetoGrant() public {
+
+    uint256 newTimestamp = block.timestamp;
+    vm.prank(dao);
+    vetoGrant.toggleBorgVote(false);
+
+    vm.prank(dao);
+    vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+    vm.prank(owner);
+    vetoGrant.proposeDirectGrant(dai_addr, address(jr), 2 ether,  "string to ipfs link");
+    skip(259205);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    //vm.prank(owner);
+    //vetoGrant.executeProposal(id);
+    //assertion
+    //vm.prank(dao);
+    //vetoGrant.setGovernanceExecutor(address(0x123));
+    //hoax(address(0x123), 1 ether);
+    //voteGrant.executeProposal(1);
+    vm.prank(owner);
+    vetoGrant.executeProposal(1);
+  }
+
+  function testAdvancedVetoGrant() public {
+
+    uint256 newTimestamp = block.timestamp;
+    vm.prank(dao);
+    vetoGrant.toggleBorgVote(false);
+
+    vm.prank(dao);
+    vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+     uint256 startTimestamp = block.timestamp;
+     BaseAllocation.Milestone[] memory emptyMilestones;
+               BaseAllocation.Allocation memory _metavestDetails = BaseAllocation.Allocation({
+                tokenStreamTotal: 2 ether,
+                vestingCliffCredit: 0,
+                unlockingCliffCredit: 0,
+                vestingRate: uint160(10),
+                vestingStartTime: uint48(block.timestamp),
+                unlockRate: uint160(10),
+                unlockStartTime: uint48(block.timestamp),
+                tokenContract: dai_addr
+            });
+
+    vm.prank(owner);
+    vetoGrant.proposeAdvancedGrant(metavestController.metavestType.Vesting, address(jr), _metavestDetails, emptyMilestones, 0, address(0), 0, 0, "ipfs link to grant details");
+   newTimestamp = startTimestamp + 1000; // 101
+    skip(259205);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    //vm.prank(owner);
+    //vetoGrant.executeProposal(id);
+    //assertion
+    //vm.prank(dao);
+    //vetoGrant.setGovernanceExecutor(address(0x123));
+    //hoax(address(0x123), 1 ether);
+    //voteGrant.executeProposal(1);
+    vm.prank(owner);
+    vetoGrant.executeProposal(1);
+  }
+
+function testVetodAdvancedVetoGrant() public {
+
+    uint256 newTimestamp = block.timestamp;
+    vm.prank(dao);
+    vetoGrant.toggleBorgVote(false);
+
+    vm.prank(dao);
+    vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+     uint256 startTimestamp = block.timestamp;
+     BaseAllocation.Milestone[] memory emptyMilestones;
+               BaseAllocation.Allocation memory _metavestDetails = BaseAllocation.Allocation({
+                tokenStreamTotal: 2 ether,
+                vestingCliffCredit: 0,
+                unlockingCliffCredit: 0,
+                vestingRate: uint160(10),
+                vestingStartTime: uint48(block.timestamp),
+                unlockRate: uint160(10),
+                unlockStartTime: uint48(block.timestamp),
+                tokenContract: dai_addr
+            });
+
+    vm.prank(owner);
+    vetoGrant.proposeAdvancedGrant(metavestController.metavestType.Vesting, address(jr), _metavestDetails, emptyMilestones, 0, address(0), 0, 0, "ipfs link to grant details");
+   newTimestamp = startTimestamp + 1000; // 101
+    skip(259205);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    //vm.prank(owner);
+    //vetoGrant.executeProposal(id);
+    //assertion
+    vm.prank(dao);
+    vetoGrant.setGovernanceExecutor(address(dao));
+    
+    vm.prank(dao);
+    vetoGrant.deleteProposal(1);
+    
+   // vm.prank(owner);
+    //vetoGrant.executeProposal(1);
+  }
+
+  function testFailVetoedAdvancedVetoGrant() public {
+
+    uint256 newTimestamp = block.timestamp;
+    vm.prank(dao);
+    vetoGrant.toggleBorgVote(false);
+
+    vm.prank(dao);
+    vetoGrant.addApprovedGrantToken(dai_addr, 2 ether);
+
+     uint256 startTimestamp = block.timestamp;
+     BaseAllocation.Milestone[] memory emptyMilestones;
+               BaseAllocation.Allocation memory _metavestDetails = BaseAllocation.Allocation({
+                tokenStreamTotal: 2 ether,
+                vestingCliffCredit: 0,
+                unlockingCliffCredit: 0,
+                vestingRate: uint160(10),
+                vestingStartTime: uint48(block.timestamp),
+                unlockRate: uint160(10),
+                unlockStartTime: uint48(block.timestamp),
+                tokenContract: dai_addr
+            });
+
+    vm.prank(owner);
+    vetoGrant.proposeAdvancedGrant(metavestController.metavestType.Vesting, address(jr), _metavestDetails, emptyMilestones, 0, address(0), 0, 0, "ipfs link to grant details");
+     newTimestamp = startTimestamp + 1000; // 101
+    skip(259205);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    //vm.prank(owner);
+    //vetoGrant.executeProposal(id);
+    //assertion
+    //vm.prank(dao);
+    //vetoGrant.setGovernanceExecutor(address(0x123));
+    //hoax(address(0x123), 1 ether);
+    //voteGrant.executeProposal(1);
+
+    vm.prank(dao);
+    vetoGrant.setGovernanceExecutor(address(dao));
+    vm.prank(dao);
+    vetoGrant.deleteProposal(1);
+
+    vm.prank(owner);
+    vetoGrant.executeProposal(1);
   }
 
   function testSimpleVoteGrant() public
@@ -289,6 +455,74 @@ contract GrantBorgTest is Test {
     hoax(address(0x123), 1 ether);
     voteGrant.executeProposal(1);
 
+  }
+
+  function testBasicVoteGrant() public
+  {
+      uint256 startTimestamp = block.timestamp;
+  
+    vm.prank(dao);
+    voteGrant.toggleBorgVote(false);
+    vm.prank(owner);
+    uint256 grantId = voteGrant.proposeSimpleGrant(dai_addr, address(jr), 1000 ether, "ipfs link to grant details");
+    //warp ahead 100 blocks
+    uint256 newTimestamp = startTimestamp + 1000; // 101
+    vm.warp(newTimestamp);
+    //skip(1000);
+    assertTrue(govToken.balanceOf(address(this)) == 1e30);
+    // assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Active);
+    // mockDao.castVote(grantId, 1);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    //create a new prop struct from daoVoteGrantImplant
+   // daoVoteGrantImplant.prop memory proposal = daoVoteGrantImplant.prop({targets: new address[](1), values: new uint256[](1), proposalBytecodes: new bytes[](1), desc: "ipfs link to grant details"});
+   // daoVoteGrantImplant.prop memory proposal = voteGrant.proposals(grantId);
+    // daoVoteGrantImplant.governanceProposalDetail memory proposal = voteGrant.getGovernanceProposalDetails(grantId);
+ // Check if the proposal was successful
+    // assertTrue(mockDao.state(grantId) == IGovernor.ProposalState.Succeeded);
+    // mockDao.getVotes(grantId);
+    // mockDao.getSupportVotes(grantId);
+    // mockDao.voteSucceeded(grantId);
+    // mockDao.quorumReached(grantId);
+   // mockDao.queue(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+    newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    // mockDao.execute(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+    vm.prank(dao);
+    voteGrant.setGovernanceExecutor(address(0x123));
+    hoax(address(0x123), 1 ether);
+    voteGrant.executeProposal(1);
+  }
+
+  function testAdvancedVoteGrant() public 
+  {
+     uint256 startTimestamp = block.timestamp;
+     BaseAllocation.Milestone[] memory emptyMilestones;
+               BaseAllocation.Allocation memory _metavestDetails = BaseAllocation.Allocation({
+                tokenStreamTotal: 2 ether,
+                vestingCliffCredit: 0,
+                unlockingCliffCredit: 0,
+                vestingRate: uint160(10),
+                vestingStartTime: uint48(block.timestamp),
+                unlockRate: uint160(10),
+                unlockStartTime: uint48(block.timestamp),
+                tokenContract: dai_addr
+            });
+
+
+    vm.prank(dao);
+    voteGrant.toggleBorgVote(false);
+    vm.prank(owner);
+     voteGrant.proposeAdvancedGrant(metavestController.metavestType.Vesting, address(jr), _metavestDetails, emptyMilestones, 0, address(0), 0, 0, "ipfs link to grant details");
+    uint256 newTimestamp = startTimestamp + 1000; // 101
+    vm.warp(newTimestamp);
+     newTimestamp = newTimestamp + 2000; // 101
+    vm.warp(newTimestamp);
+    // mockDao.execute(proposal.targets, proposal.values, proposal.proposalBytecodes, proposal.desc);
+    vm.prank(dao);
+    voteGrant.setGovernanceExecutor(address(0x123));
+    hoax(address(0x123), 1 ether);
+    voteGrant.executeProposal(1);
   }
 
   function testFailSimpleVoteGrantUnauthorized() public

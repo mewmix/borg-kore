@@ -12,7 +12,7 @@ import "metavest/MetaVesTController.sol";
 
 /// @title daoVetoGrantImplan
 /// @notice This implant allows the BORG to grant time locked grants, vetoable by the DAO or authority.
-contract daoVetoGrantImplant is vetoImplant {
+contract daoVetoGrantImplant is VetoImplant {
 
     // BORG Implant ID
     uint256 public constant IMPLANT_ID = 3;
@@ -51,7 +51,7 @@ contract daoVetoGrantImplant is vetoImplant {
     uint256 internal constant MAX_PROPOSAL_DURATION = 30 days;
 
     // Grant Proposal Struct
-    struct Proposal {
+    struct ImplantProposal {
         uint256 id;
         uint256 duration;
         uint256 startTime;
@@ -97,7 +97,7 @@ contract daoVetoGrantImplant is vetoImplant {
     event MetaVesTControllerUpdated(address indexed newMetaVesTController);
 
     // Proposal Storage and mappings
-    Proposal[] public currentProposals;
+    ImplantProposal[] public currentProposals;
     mapping(uint256 => proposalDetail) public vetoProposals;
     mapping(uint256 => uint256) internal proposalIndicesByProposalId;
     mapping(address => uint256) public approvedGrantTokens;
@@ -231,7 +231,7 @@ contract daoVetoGrantImplant is vetoImplant {
         if(!ISafe(BORG_SAFE).isOwner(msg.sender))
             revert daoVetoGrantImplant_CallerNotBORGMember();
 
-        Proposal memory proposal = _getProposal(_proposalId);
+        ImplantProposal memory proposal = _getProposal(_proposalId);
 
         if(proposal.startTime + proposal.duration + gracePeriod > block.timestamp)
             revert daoVetoGrantImplant_ProposalNotReady();
@@ -251,7 +251,7 @@ contract daoVetoGrantImplant is vetoImplant {
     /// @notice Internal View function to get a proposal
     /// @param _proposalId The proposal ID
     /// @return Proposal The proposal struct
-    function _getProposal(uint256 _proposalId) internal view returns (Proposal memory) {
+    function _getProposal(uint256 _proposalId) internal view returns (ImplantProposal memory) {
         uint256 proposalIndex = proposalIndicesByProposalId[_proposalId];
         if(proposalIndex == 0) revert daoVetoGrantImplant_ProposalNotFound();
         return currentProposals[proposalIndex - 1];
@@ -285,7 +285,7 @@ contract daoVetoGrantImplant is vetoImplant {
 
         bytes memory proposalBytecode = abi.encodeWithSignature("executeDirectGrant(address,address,uint256)", _token, _recipient, _amount);
        
-        Proposal storage newProposal = currentProposals.push();
+        ImplantProposal storage newProposal = currentProposals.push();
         newProposalId = ++lastProposalId;
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
@@ -341,7 +341,7 @@ contract daoVetoGrantImplant is vetoImplant {
 
         bytes memory proposalBytecode = abi.encodeWithSignature("executeSimpleGrant(address,address,uint256)", _token, _recipient, _amount);
      
-        Proposal storage newProposal = currentProposals.push();
+        ImplantProposal storage newProposal = currentProposals.push();
         newProposalId = ++lastProposalId;
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;
@@ -409,7 +409,7 @@ contract daoVetoGrantImplant is vetoImplant {
 
         bytes memory proposalBytecode = abi.encodeWithSignature("executeAdvancedGrant(uint8,address,(uint256,uint128,uint128,uint160,uint48,uint160,uint48,address),(uint256,bool,bool,address[])[],uint256,address,uint256,uint256)", _type, _grantee, _allocation, _milestones, _exercisePrice, _paymentToken, _shortStopDuration, _longStopDate);
 
-        Proposal storage newProposal = currentProposals.push();
+        ImplantProposal storage newProposal = currentProposals.push();
         newProposalId = ++lastProposalId;
         newProposal.id = newProposalId;
         newProposal.startTime = block.timestamp;

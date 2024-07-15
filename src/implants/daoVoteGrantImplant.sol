@@ -30,6 +30,8 @@ contract daoVoteGrantImplant is VoteImplant {
 
     // Require BORG Vote (toggle multi-sig vote vs any BORG member)
     bool public requireBorgVote = true;
+    /// @notice The duration for when a proposal expires if not executed
+    uint256 public expiryTime = 60 days;
 
     /// @notice Struct to store a pending proposal that will later be executed
     ///         by `executeProposal` following a successful governance vote.
@@ -83,6 +85,7 @@ contract daoVoteGrantImplant is VoteImplant {
     event GovernanceAdapterUpdated(address governanceAdapter);
     event MetaVesTControllerUpdated(address metaVesTController);
     event BorgVoteToggled(bool requireBorgVote);
+    event ExpirationTimeUpdated(uint256 expiryTime);
 
     /// @notice Modifier to check caller is authorized to propose a grant. If
     ///         `requireBorgVote` is true, then grants need to be co-approved by
@@ -154,6 +157,13 @@ contract daoVoteGrantImplant is VoteImplant {
     function updateThreshold(uint256 _threshold) external onlyOwner {
          threshold = _threshold;
          emit ThresholdUpdated(_threshold);
+    }
+
+    /// @notice Function to update the expiration time
+    /// @param _expiryTime The new expiration time
+    function updateExpirationTime(uint256 _expiryTime) external onlyOwner {
+        expiryTime = _expiryTime;
+        emit ExpirationTimeUpdated(_expiryTime);
     }
 
     /// @notice Update the governance adapter contract address
@@ -326,6 +336,10 @@ contract daoVoteGrantImplant is VoteImplant {
             revert daoVoteGrantImplant_ProposalNotReady();
         }
 
+        //check if proposal has expired
+        if(proposal.startTime + proposal.duration + expiryTime < block.timestamp)
+            revert daoVoteGrantImplant_ProposalExpired();
+
         (bool success,) = address(this).call(proposal.cdata);
         if (!success) {
             revert daoVoteGrantImplant_ProposalExecutionError();
@@ -360,9 +374,9 @@ contract daoVoteGrantImplant is VoteImplant {
         }
 
         if (_token == address(0)) {
-            if (!ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call)) {
+            if (!ISafe(BORG_SAFE).execTransactionFromModule(_recipient, _amount, "", Enum.Operation.Call)) 
                 revert daoVoteGrantImplant_GrantFailed();
-            } else if (
+        }  else if (
                 !ISafe(BORG_SAFE).execTransactionFromModule(
                     _token,
                     0,
@@ -372,7 +386,7 @@ contract daoVoteGrantImplant is VoteImplant {
             ) {
                 revert daoVoteGrantImplant_GrantFailed();
             }
-        }
+        
 
         emit GrantProposalExecuted(_token, _recipient, _amount, "");
     }

@@ -3,11 +3,10 @@ pragma solidity 0.8.20;
 
 import "./baseGovernanceAdapater.sol";
 import "../../interfaces/IFlexGov.sol";
-import "../auth.sol";
 
 /// @title FlexGovernanceAdapter
 /// @notice Governance adapter for the Flexa DAO
-contract FlexGovernanceAdapter is BaseGovernanceAdapter, BorgAuthACL {
+contract FlexGovernanceAdapter is BaseGovernanceAdapter {
     /// @notice Address of the governor contract
     address public governorContract;
 
@@ -18,7 +17,7 @@ contract FlexGovernanceAdapter is BaseGovernanceAdapter, BorgAuthACL {
 
     /// @notice Update the governor contract address
     /// @param _goverernorContract Address of the governor contract
-    function updateGovernorContract(address _goverernorContract) public onlyAdmin() {
+    function updateGovernorContract(address _goverernorContract) public onlyOwner() {
         governorContract = _goverernorContract;
     }
 
@@ -31,7 +30,7 @@ contract FlexGovernanceAdapter is BaseGovernanceAdapter, BorgAuthACL {
     /// @param threshold Minimum threshold required for the proposal to pass
     /// @param duration Duration of the proposal
     /// @return proposalId ID of the proposal
-    function createProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description, uint256 quorum, uint256 threshold, uint256 duration) public override returns (uint256 proposalId) {
+    function createProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, string memory description, uint256 quorum, uint256 threshold, uint256 duration) public override onlyAdmin returns (uint256 proposalId) {
         return IFlexGov(governorContract).proposeWithThresholds(targets, values, calldatas, description, quorum, threshold, duration);
     }
 
@@ -42,7 +41,7 @@ contract FlexGovernanceAdapter is BaseGovernanceAdapter, BorgAuthACL {
     /// @param descriptionHash Hash of the description of the proposal
     /// @param id ID of the proposal
     /// @return proposalId ID of the proposal
-    function executeProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override returns (uint256) {
+    function executeProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override onlyAdmin returns (uint256) {
         return IFlexGov(governorContract).execute(targets, values, calldatas, descriptionHash);
     }
 
@@ -53,7 +52,7 @@ contract FlexGovernanceAdapter is BaseGovernanceAdapter, BorgAuthACL {
     /// @param descriptionHash Hash of the description of the proposal
     /// @param id ID of the proposal
     /// @return proposalId ID of the proposal
-    function cancelProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override returns (uint256) {
+    function cancelProposal(address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash, uint256 id) public override onlyAdmin returns (uint256) {
         return IFlexGov(governorContract).cancel(targets, values, calldatas, descriptionHash);
     }
 

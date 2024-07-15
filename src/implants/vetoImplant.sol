@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import "./baseImplant.sol";
 import "../interfaces/IVetoImplant.sol";
 
-abstract contract vetoImplant is BaseImplant, IVetoImplant {
+abstract contract VetoImplant is BaseImplant, IVetoImplant {
     address public governanceExecutor;
 
     modifier onlyGovernance() {
