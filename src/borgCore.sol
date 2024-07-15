@@ -82,7 +82,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     uint256 public immutable borgType; // type of the BORG
     enum borgModes { 
         whitelist, // everything is restricted except what has been whitelisted
-        blacklist, // everything is allowed except what has been blacklisted
+        blacklist, // everything is allowed except contracts and methods that have been blacklisted. Param checks work the same as whitelist
         unrestricted // everything is allowed
     }
     borgModes public borgMode = borgModes.whitelist; // mode of the BORG
@@ -109,7 +109,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     event IdentifierUpdated(string newId);
     event NativeCooldownUpdated(uint256 newCooldown);
     event DelegateCallToggled(address indexed contractAddress, bool allowed);
-    event unrestrictedModeToggled(bool enabled);
+    event borgModeChanged(borgModes _newMode);
 
 
     /// Errors
@@ -215,10 +215,12 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         }
     }
 
-    /// @dev This is a function to switch the BORG mode to whitelisted, blacklisted, or unrestricted. The later two only advisable for minimal BORG types
+    /// @notice This is a function to switch the BORG mode to whitelisted, blacklisted, or unrestricted. The later two only advisable for minimal BORG types
+    /// @dev Caution when changing modes as policy will change and could lock out users or allow unrestricted access
     /// @param _mode borgModes, whitelist, blacklist, unrestricted
     function changeBorgMode(borgModes _mode) external onlyOwner {
         borgMode = _mode;
+        emit borgModeChanged(_mode);
     }
 
     /// @dev This is post transaction execution. We can react but cannot revert what just occured.
@@ -417,6 +419,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
                 {
                     policy[contractAddress].enabled = true;
                     policy[contractAddress].fullAccessOrBlock = true;
+                    emit ContractAdded(contractAddress);
                 }
             } else if (maxValue>0 && maxValue>minValue && paramType == ParamType.UINT){
                 bytes32[] memory exactMatch = new bytes32[](0);
