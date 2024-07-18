@@ -69,7 +69,7 @@ contract BalanceConditionTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, 'balance-condition-borg', address(safe));
+    core = new borgCore(auth, 0x1, borgCore.borgModes.whitelist, 'balance-condition-borg', address(safe));
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element

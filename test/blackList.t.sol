@@ -46,7 +46,7 @@ contract BlackListTest is Test {
     vm.prank(dao);
     auth = new BorgAuth();
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, 'borg-core-testing', address(safe));
+    core = new borgCore(auth, 0x1, borgCore.borgModes.blacklist, 'borg-core-testing', address(safe));
     mockPerm = new MockPerm();
 
     failSafe = new failSafeImplant(auth, address(safe), dao);
@@ -58,8 +58,6 @@ contract BlackListTest is Test {
     executeSingle(addOwner(address(jr)));
     executeSingle(getAddEjectModule(address(eject)));
 
-    vm.prank(dao);
-    core.changeBorgMode(borgCore.borgModes.blacklist);
     //core.addFullAccessOrBlockContract(address(core));
     /*   function addRangeParameterConstraint(
         address _contract,

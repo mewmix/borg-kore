@@ -131,8 +131,9 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     /// @param _borgType uint256, the type of the BORG
     /// @param _identifier string, the identifier for the BORG
     /// @dev The constructor sets the BORG type and identifier for the BORG and adds the oversight contract.
-    constructor(BorgAuth _auth, uint256 _borgType, string memory _identifier, address _safe) BorgAuthACL(_auth) {
+    constructor(BorgAuth _auth, uint256 _borgType, borgModes _mode, string memory _identifier, address _safe) BorgAuthACL(_auth) {
         borgType = _borgType;
+        borgMode = _mode;
         id = _identifier;
         safe = _safe;
     }
@@ -213,14 +214,6 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
                 revert BORG_CORE_InvalidContract();
             }
         }
-    }
-
-    /// @notice This is a function to switch the BORG mode to whitelisted, blacklisted, or unrestricted. The later two only advisable for minimal BORG types
-    /// @dev Caution when changing modes as policy will change and could lock out users or allow unrestricted access
-    /// @param _mode borgModes, whitelist, blacklist, unrestricted
-    function changeBorgMode(borgModes _mode) external onlyOwner {
-        borgMode = _mode;
-        emit borgModeChanged(_mode);
     }
 
     /// @dev This is post transaction execution. We can react but cannot revert what just occured.

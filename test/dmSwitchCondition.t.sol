@@ -60,7 +60,7 @@ contract dmSwitchTest is Test {
     auth = new BorgAuth();
 
     safe = IGnosisSafe(MULTISIG);
-    core = new borgCore(auth, 0x1, "dead-man-switch-test", address(safe));
+    core = new borgCore(auth, 0x1, borgCore.borgModes.whitelist, "dead-man-switch-test", address(safe));
     //create SignatureCondition.Logic for and
 
     address[] memory signers = new address[](1); // Declare a dynamically-sized array with 1 element

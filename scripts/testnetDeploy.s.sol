@@ -58,7 +58,7 @@ contract BaseScript is Script {
             metaVesT = MetaVesT(metaVesTController.metavest());
 
             safe = IGnosisSafe(MULTISIG);
-            core = new borgCore(auth, 0x1, "test-net-deploy-borg", address(safe));
+            core = new borgCore(auth, 0x1, borgCore.borgModes.whitelist, "test-net-deploy-borg", address(safe));
             failSafe = new failSafeImplant(auth, address(safe), deployerAddress);
             eject = new ejectImplant(auth, MULTISIG, address(failSafe), false, true);
             opGrant = new optimisticGrantImplant(auth, MULTISIG, address(metaVesTController));
