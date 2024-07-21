@@ -60,6 +60,13 @@ contract failSafeImplant is BaseImplant { //is baseImplant
     /// @param _amount The amount of the token
     /// @param _tokenType The type of the token enum
     function addToken(address _tokenAddress, uint256 _id, uint256 _amount, uint8 _tokenType) external onlyOwner {
+        if(_tokenType > 2) revert failSafeImplant_InvalidToken();
+        if(_tokenType == 0 && _id != 0) revert failSafeImplant_InvalidToken(); //id must be zero for erc20s
+        if(_tokenType == 1 && _amount != 1) revert failSafeImplant_InvalidToken(); //amount must be 1 for erc721s
+        //check if token already exists
+        for(uint256 i = 0; i < tokenList.length; i++) {
+            if(tokenList[i].tokenAddress == _tokenAddress) revert failSafeImplant_InvalidToken();
+        }
         TokenInfo memory newToken = TokenInfo({
             tokenAddress: _tokenAddress,
             id: _id,

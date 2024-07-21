@@ -695,7 +695,7 @@ contract BlackListTest is Test {
   function testFailOnNativeRug() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addFullAccessOrBlockContract(address(owner));
+    core.addRecipient(address(owner), 0);
     executeSingle(getNativeTransferData(owner, 2 ether), 2 ether);
   }
   
@@ -710,7 +710,7 @@ contract BlackListTest is Test {
   function testPassOnNativeDevPayment() public {
     executeSingle(getSetGuardData(address(MULTISIG)));
     vm.prank(dao);
-    core.addRecipient(owner, .01 ether);
+    //core.addRecipient(owner, .01 ether);
     executeSingle(getNativeTransferData(owner, .01 ether), .01 ether);
   }
 

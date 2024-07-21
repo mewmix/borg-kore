@@ -11,7 +11,7 @@ import "./VoteImplant.sol";
 
 /// @title daoVoteGrantImplant - A module for creating grants for a BORG with full DAO approval via governence.
 /// The DAO must have a valid governance system in place to use this module.
-contract daoVoteGrantImplant is VoteImplant {
+contract daoVoteGrantImplant is VoteImplant, ReentrancyGuard {
     // Implant ID
     uint256 public constant IMPLANT_ID = 4;
     uint256 public lastProposalId;
@@ -33,6 +33,8 @@ contract daoVoteGrantImplant is VoteImplant {
     /// @notice The duration for when a proposal expires if not executed
     uint256 public expiryTime = 60 days;
 
+    // Proposal Constants
+    uint256 internal constant MAX_PROPOSAL_DURATION = 30 days;
     /// @notice Struct to store a pending proposal that will later be executed
     ///         by `executeProposal` following a successful governance vote.
     struct ImplantProposal {
@@ -126,6 +128,9 @@ contract daoVoteGrantImplant is VoteImplant {
         address _governanceExecutor,
         address _metaVestController
     ) BaseImplant(_auth, _borgSafe) {
+         if(_metaVestController == address(0)) revert daoVoteGrantImplant_ZeroAddress();  
+        if(duration > MAX_PROPOSAL_DURATION)
+            duration = MAX_PROPOSAL_DURATION;
         duration = _duration;
         quorum = _quorum;
         threshold = _threshold;
@@ -138,6 +143,8 @@ contract daoVoteGrantImplant is VoteImplant {
     /// @param _duration - The new duration in seconds
     function updateDuration(uint256 _duration) external onlyOwner {
         duration = _duration;
+        if(duration > MAX_PROPOSAL_DURATION)
+            duration = MAX_PROPOSAL_DURATION;
         emit DurationUpdated(_duration);
     }
 
@@ -326,7 +333,7 @@ contract daoVoteGrantImplant is VoteImplant {
     /// @notice Proposal called by governance executor to execute a pending
     ///         proposal.
     /// @param _proposalId The ID of the pending implant proposal
-    function executeProposal(uint256 _proposalId) external onlyGovernance {
+    function executeProposal(uint256 _proposalId) external onlyGovernance nonReentrant {
         ImplantProposal memory proposal = _getProposal(_proposalId);
 
         if (proposal.startTime + proposal.duration > block.timestamp) {
@@ -394,9 +401,7 @@ contract daoVoteGrantImplant is VoteImplant {
     /// @param _recipient - The recipient of the grant
     /// @param _amount - The amount of tokens to be given
     function executeSimpleGrant(address _token, address _recipient, uint256 _amount) external onlyThis {
-        if (IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount) {
-            revert daoVoteGrantImplant_GrantSpendingLimitReached();
-        }
+
         if(IERC20(_token).balanceOf(address(BORG_SAFE)) < _amount)
             revert daoVoteGrantImplant_GrantSpendingLimitReached();
 

@@ -39,7 +39,11 @@ contract ConditionManager is BorgAuthACL {
     /// @param _op Logic enum, either 'AND' (all conditions must be true) or 'OR' (only one of the conditions must be true)
     /// @param _condition address of the condition contract
     function addCondition(Logic _op, address _condition) external onlyOwner {
-        if(!IERC165(_condition).supportsInterface(_INTERFACE_ID_BASE_CONDITION)) revert ConditionManager_InvalidCondition();
+        if(!IERC165(_condition).supportsInterface(type(ICondition).interfaceId)) revert ConditionManager_InvalidCondition();
+        //check if condition address already exists in conditions
+        for(uint256 i = 0; i < conditions.length; i++) {
+            if(conditions[i].condition == _condition) revert ConditionManager_InvalidCondition();
+        }
         conditions.push(Condition(_condition, _op));
         emit ConditionAdded(Condition(_condition, _op));
     }
@@ -92,7 +96,11 @@ contract ConditionManager is BorgAuthACL {
         address _condition,
         bytes4 _functionSignature
     ) external onlyOwner {
-        if(!IERC165(_condition).supportsInterface(_INTERFACE_ID_BASE_CONDITION)) revert ConditionManager_InvalidCondition();
+        if(!IERC165(_condition).supportsInterface(type(ICondition).interfaceId)) revert ConditionManager_InvalidCondition();
+        //check if condition address already exists to the function signature in conditionsByFunction
+        for(uint256 i = 0; i < conditionsByFunction[_functionSignature].length; i++) {
+            if(conditionsByFunction[_functionSignature][i].condition == _condition) revert ConditionManager_InvalidCondition();
+        }
         conditionsByFunction[_functionSignature].push(
             Condition(_condition, _op)
         );

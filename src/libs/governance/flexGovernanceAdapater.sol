@@ -56,14 +56,6 @@ contract FlexGovernanceAdapter is BaseGovernanceAdapter {
         return IFlexGov(governorContract).cancel(targets, values, calldatas, descriptionHash);
     }
 
-    /// @notice Vote on a proposal in the governor contract
-    /// @param proposalId ID of the proposal
-    /// @param support Support value for the vote
-    /// @return proposalId ID of the proposal
-    function vote(uint256 proposalId, uint8 support) public override returns(uint256) {
-        return IFlexGov(governorContract).castVote(proposalId, support);
-    }
-
     /// @notice Get the votes for a proposal in the governor contract
     /// @param proposalId ID of the proposal
     /// @return forVotes Votes in favor of the proposal

@@ -56,7 +56,7 @@ contract ChainLinkOracleCondition is BaseCondition {
             /* uint80 answeredInRound */
         ) = priceFeed.latestRoundData();
 
-        if(updatedAt - block.timestamp > acceptableDuration) {
+        if(block.timestamp - updatedAt > acceptableDuration) {
             revert ChainLinkOracleCondition_ValueOlderThanThreshold();
         }
 

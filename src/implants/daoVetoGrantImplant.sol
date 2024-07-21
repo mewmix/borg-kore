@@ -12,7 +12,7 @@ import "metavest/MetaVesTController.sol";
 
 /// @title daoVetoGrantImplan
 /// @notice This implant allows the BORG to grant time locked grants, vetoable by the DAO or authority.
-contract daoVetoGrantImplant is VetoImplant {
+contract daoVetoGrantImplant is VetoImplant, ReentrancyGuard {
 
     // BORG Implant ID
     uint256 public constant IMPLANT_ID = 3;
@@ -116,7 +116,10 @@ contract daoVetoGrantImplant is VetoImplant {
     /// @param _governanceAdapter The governance adapter address
     /// @param _governanceExecutor The governance executor address
     constructor(BorgAuth _auth, address _borgSafe, uint256 _duration, uint256 _quorum, uint256 _threshold, uint256 _cooldown, address _governanceAdapter, address _governanceExecutor,address _metaVestController) BaseImplant(_auth, _borgSafe) {
+        if(_metaVestController == address(0)) revert daoVetoGrantImplant_ZeroAddress();  
         duration = _duration;
+        if(duration > MAX_PROPOSAL_DURATION)
+            duration = MAX_PROPOSAL_DURATION;
         quorum = _quorum;
         threshold = _threshold;
         cooldown = _cooldown;
@@ -166,8 +169,8 @@ contract daoVetoGrantImplant is VetoImplant {
     /// @param _duration The new duration
     function updateDuration(uint256 _duration) external onlyOwner {
         duration = _duration;
-        if(duration > 30 days)
-            duration = 30 days;
+        if(duration > MAX_PROPOSAL_DURATION)
+            duration = MAX_PROPOSAL_DURATION;
         emit DurationUpdated(duration);
     }
 
@@ -224,7 +227,7 @@ contract daoVetoGrantImplant is VetoImplant {
     /// @param _proposalId The proposal ID
     /// @dev Only callable by an active BORG member
     function executeProposal(uint256 _proposalId)
-        external
+        external nonReentrant
     {   
         if(!ISafe(BORG_SAFE).isOwner(msg.sender))
             revert daoVetoGrantImplant_CallerNotBORGMember();

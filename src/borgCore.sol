@@ -89,7 +89,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     address immutable safe;
 
     /// Whitelist Mappings
-    mapping(address => Recipient) public whitelistedRecipients; // mapping of recipient addresses to recipient structs
+    mapping(address => Recipient) public policyRecipients; // mapping of recipient addresses to recipient structs, allowed in whitelist mode, blocked in blacklist mode
     mapping(address => PolicyItem) public policy; // mapping of contract addresses to whitelist policy items
 
     /// Events
@@ -160,29 +160,49 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     {
         if(borgMode == borgModes.unrestricted) return;
         else if(borgMode == borgModes.blacklist) {
-            if(policy[to].enabled) {
-                if(policy[to].fullAccessOrBlock) revert BORG_CORE_InvalidContract();
-                if(!policy[to].delegateCallAllowed && operation == Enum.Operation.DelegateCall) {
-                    revert BORG_CORE_DelegateCallNotAuthorized();
+            //blacklist native eth mode
+             if (value > 0) {
+                // Native Gas transfer will BLOCK blacklisted addresses that have been added in this mode
+                if(policyRecipients[to].approved) {
+                    revert BORG_CORE_InvalidRecipient();
                 }
-
-                if(!isMethodCallAllowed(to, data))
-                        revert BORG_CORE_MethodNotAuthorized();
-
-                if (!_checkCooldown(to, bytes4(data[:4]))) {
-                    revert BORG_CORE_MethodCooldownActive();
+                //check cooldown
+                if (!_checkNativeCooldown()) {
+                    revert BORG_CORE_NativeCooldownActive();
                 }
-                //Update last executed time
-                policy[to].methods[bytes4(data[:4])].lastExecutionTimestamp = block.timestamp;
+                lastNativeExecutionTimestamp = block.timestamp;
+            } 
+
+            //black list contract calls w/ data
+             if (data.length > 0) {
+                if(policy[to].enabled) {
+                    if(policy[to].fullAccessOrBlock) revert BORG_CORE_InvalidContract();
+                    if(!policy[to].delegateCallAllowed && operation == Enum.Operation.DelegateCall) {
+                        revert BORG_CORE_DelegateCallNotAuthorized();
+                    }
+
+                    if(!isMethodCallAllowed(to, data))
+                            revert BORG_CORE_MethodNotAuthorized();
+
+                    if (!_checkCooldown(to, bytes4(data[:4]))) {
+                        revert BORG_CORE_MethodCooldownActive();
+                    }
+                    //Update last executed time
+                    policy[to].methods[bytes4(data[:4])].lastExecutionTimestamp = block.timestamp;
+                }
+             }
+
+            if(value == 0 && data.length == 0) {
+                revert BORG_CORE_InvalidContract();
             }
         }
         else {
             if (value > 0) {
                 // Native Gas transfer
-                if(!whitelistedRecipients[to].approved) {
+                if(!policyRecipients[to].approved) {
                     revert BORG_CORE_InvalidRecipient();
                 }
-                if(value > whitelistedRecipients[to].transactionLimit) {
+                if(value > policyRecipients[to].transactionLimit) {
                     revert BORG_CORE_AmountOverLimit();
                 }
                 //check cooldown
@@ -221,16 +241,16 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
      
     }
 
-    /// @dev add recipient address and transaction limit to the whitelist
+    /// @dev add recipient address and transaction limit to the policy recipients
     function addRecipient(address _recipient, uint256 _transactionLimit) external onlyOwner {
         if(_recipient == address(0)) revert BORG_CORE_InvalidRecipient();
-        whitelistedRecipients[_recipient] = Recipient(true, _transactionLimit);
+        policyRecipients[_recipient] = Recipient(true, _transactionLimit);
         emit RecipientAdded(_recipient, _transactionLimit);
     }
 
-    /// @dev remove recipient address from the whitelist
+    /// @dev remove recipient address from the policy recipients
     function removeRecipient(address _recipient) external onlyOwner {
-        whitelistedRecipients[_recipient] = Recipient(false, 0);
+        policyRecipients[_recipient] = Recipient(false, 0);
         emit RecipientRemoved(_recipient);
     }
 
@@ -256,13 +276,14 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         revert BORG_CORE_InvalidContract();
     }
 
-    /// @dev remove contract address from the whitelist
+    /// @dev remove contract address from the whitelist or blacklist
     function removeContract(address _contract) external onlyOwner {
          //clear out the parameter constraints
        for(uint256 i = 0; i < policy[_contract].methodSignatures.length; i++) {
            bytes4 methodSelector = policy[_contract].methodSignatures[i];
            _removePolicyMethodSelector(_contract, methodSelector);
        }
+    
        policy[_contract].enabled = false;
        policy[_contract].fullAccessOrBlock = false;
        policy[_contract].delegateCallAllowed = false;
@@ -309,8 +330,8 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         emit PolicyMethodAdded(_contract, _methodSignature);
     }
 
-    /// @notice Function to add a parameter constraint for a contract method using a methodSig string
-    /// @param _contract address, the address of the contract
+    /// @notice Function to remove a method constraint with all parameter constraints
+    /// @dev contract and method must be enabled
     /// @param _methodSignature string, the signature of the method
     function removePolicyMethod(address _contract, string memory _methodSignature) public onlyOwner {
         bytes4 methodSelector = bytes4(keccak256(bytes(_methodSignature)));
@@ -362,15 +383,6 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
         methodConstraint.enabled = false;
         methodConstraint.cooldownPeriod = 0;
         methodConstraint.lastExecutionTimestamp = 0;
-
-        //remove the method from the method array
-        for (uint256 i = 0; i < policy[_contract].methodSignatures.length; i++) {
-            if (policy[_contract].methodSignatures[i] == methodSelector) {
-                policy[_contract].methodSignatures[i] = policy[_contract].methodSignatures[policy[_contract].methodSignatures.length - 1];
-                policy[_contract].methodSignatures.pop();
-                break;
-            }
-        }
         
         emit PolicyMethodSelectorRemoved(_contract, methodSelector);
     }
@@ -414,11 +426,15 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
                     policy[contractAddress].fullAccessOrBlock = true;
                     emit ContractAdded(contractAddress);
                 }
-            } else if (maxValue>0 && maxValue>minValue && paramType == ParamType.UINT){
+            } else if (paramType == ParamType.UINT){
+                if(maxValue==0 || minValue>maxValue)
+                    revert BORG_CORE_InvalidParam();
                 bytes32[] memory exactMatch = new bytes32[](0);
                 _addParameterConstraint(contractAddress, methodName, paramType, minValue, maxValue, 0, 0, exactMatch, byteOffset, byteLength);
             }
-            else if (imaxValue>0 && imaxValue>iminValue && paramType == ParamType.INT){
+            else if (paramType == ParamType.INT){
+                if(iminValue>imaxValue)
+                    revert BORG_CORE_InvalidParam();
                 bytes32[] memory exactMatch = new bytes32[](0);
                 _addParameterConstraint(contractAddress, methodName, paramType, 0, 0, iminValue, imaxValue, exactMatch, byteOffset, byteLength);
             }
@@ -589,7 +605,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     function isMethodCallAllowed(
         address _contract,
         bytes calldata _methodCallData
-    ) public  returns (bool) {
+    ) public view returns (bool) {
         if(_methodCallData.length < 4) return false;
         bytes4 methodSelector = bytes4(_methodCallData[:4]);
         MethodConstraint storage methodConstraint = policy[_contract].methods[methodSelector];

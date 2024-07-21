@@ -59,6 +59,7 @@ contract optimisticGrantImplant is BaseImplant, ReentrancyGuard { //is baseImpla
     /// @param _borgSafe address of the applicable BORG's Gnosis Safe which is adding this optimisticGrantImplant
     /// @param _metaVestController address of the MetaVesTController contract
     constructor(BorgAuth _auth, address _borgSafe, address _metaVestController) BaseImplant(_auth, _borgSafe) {
+        if(_metaVestController == address(0)) revert optimisticGrantImplant_ZeroAddress();
         metaVesTController = metavestController(_metaVestController);
 
     }
