@@ -11,7 +11,6 @@ import "../src/libs/conditions/signatureCondition.sol";
 import "../src/implants/failSafeImplant.sol";
 import "../test/libraries/mocks/MockGovToken.sol";
 import "../test/libraries/mocks/FlexGov.sol";
-import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
 import "../test/libraries/safe.t.sol";
@@ -20,7 +19,7 @@ import {console} from "forge-std/console.sol";
 contract BaseScript is Script {
   address deployerAddress;
   
-  address MULTISIG = 0xC92Bc86Ae8E0561A57d1FBA63B58447b0E24c58F;//0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
+  address MULTISIG = 0xC9b7683B9310aeb1B735D9646e7c742BC0A4b358;//0xC92Bc86Ae8E0561A57d1FBA63B58447b0E24c58F;//0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
   address gxpl = 0x42069BaBe92462393FaFdc653A88F958B64EC9A3;
   IGnosisSafe safe;
   borgCore core;
@@ -33,8 +32,7 @@ contract BaseScript is Script {
   failSafeImplant failSafe;
   MockERC20Votes govToken;
   FlexGov mockDao;
-  MetaVesT metaVesT;
-  MetaVesTController metaVesTController;
+  metavestController metaVesTController;
   FlexGovernanceAdapter governanceAdapter;
 
      function run() public {
@@ -51,11 +49,12 @@ contract BaseScript is Script {
             safe = IGnosisSafe(MULTISIG);
             vm.startBroadcast(deployerPrivateKey);
             governanceAdapter = new FlexGovernanceAdapter(auth, address(mockDao));
-            metaVesTController = new MetaVesTController(MULTISIG, MULTISIG, address(govToken));
+            auth.updateRole(address(governanceAdapter), 98);
+            metaVesTController = new metavestController(MULTISIG, MULTISIG, address(govToken));
             vm.stopBroadcast();
             address controllerAddr = address(metaVesTController);
             vm.startBroadcast(deployerPrivateKey);
-            metaVesT = MetaVesT(metaVesTController.metavest());
+
 
             safe = IGnosisSafe(MULTISIG);
             core = new borgCore(auth, 0x1, borgCore.borgModes.whitelist, "test-net-deploy-borg", address(safe));
@@ -73,6 +72,8 @@ contract BaseScript is Script {
 
             auth.updateRole(address(governanceAdapter), 98);
             auth.updateRole(address(mockDao), 99);
+            auth.updateRole(address(eject), 99);
+            
 
       
             executeSingle(getAddModule(address(opGrant)));
@@ -110,7 +111,6 @@ contract BaseScript is Script {
             console.log("FailSafe: ", address(failSafe));
             console.log("Auth: ", address(auth));
             console.log("Governance Adapter: ", address(governanceAdapter));
-            console.log("MetaVesT: ", address(metaVesT));
             console.log("MetaVesT Controller: ", address(metaVesTController));
             console.log("Mock DAO: ", address(mockDao));
             console.log("Mock Gov Token: ", address(govToken));
