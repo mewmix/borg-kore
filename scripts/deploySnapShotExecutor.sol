@@ -19,12 +19,26 @@ import {console} from "forge-std/console.sol";
 import "metavest/VestingAllocationFactory.sol";
 import "metavest/TokenOptionFactory.sol";
 import "metavest/RestrictedTokenFactory.sol";
+import "../src/libs/governance/SnapShotExecutor.sol";
+import "../src/libs/governance/govAuthErc721Adapater.sol";
+import "forge-std/StdUtils.sol";
+
+contract TestableERC721 is MockERC721 {
+    function mint(address to, uint256 tokenId) public {
+        _mint(to, tokenId);
+    }
+
+    function safeMint(address to, uint256 tokenId) public {
+        _safeMint(to, tokenId);
+    }
+}
+
 
 contract BaseScript is Script {
   address deployerAddress;
   
   address MULTISIG = 0xA52ccdee6105D758964ee55155Ced6c012eA0e89;//0xC92Bc86Ae8E0561A57d1FBA63B58447b0E24c58F;//0x201308B728ACb48413CD27EC60B4FfaC074c2D01; //change this to the deployed Safe address
-  address gxpl = 0x42069BaBe92462393FaFdc653A88F958B64EC9A3;
+  address gxpl = 0xda0d1a30949b870a1FA7B2792B03070395720Da0;
   IGnosisSafe safe;
   borgCore core;
   ejectImplant eject;
@@ -44,14 +58,31 @@ contract BaseScript is Script {
             deployerAddress = vm.addr(vm.envUint("PRIVATE_KEY_DEPLOY"));
             uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_DEPLOY");
             vm.startBroadcast(deployerPrivateKey);
-            multiSignCondition = new MultiUseSignCondition(MULTISIG, 2);
+
+
+           
             auth = new BorgAuth();
-            auth.updateRole(gxpl, 98);
-            govToken = new MockERC20Votes("OnlyBORGs", "oBORG");
-            mockDao = new FlexGov(govToken, auth);
-            govToken.delegate(address(this));
+
+          
+            TestableERC721 mockNFT = new TestableERC721();
+            mockNFT.initialize("testDAO", "DAO");
+
+            mockNFT.mint(gxpl, 1);
+           // mockNFT.transferFrom(address(this), gxpl, 1);
+            GovAuthErc721Adapter _adapter = new GovAuthErc721Adapter(address(mockNFT));
+
+            auth.setRoleAdapter(99, address(_adapter));
+
+            SnapShotExecutor snapShotExecutor = new SnapShotExecutor(auth, address(MULTISIG), address(0x0C7f36ACF262eA3fCffE2d5392e19C19dF0538a0), 2 minutes, 2);
 
             vm.stopBroadcast();
+
+            console.log("Deployed");
+            console.log("Addresses:");
+            console.log("MockNFT: ", address(mockNFT));
+            console.log("snapshotAuth: ", address(auth));
+            console.log("snapShotExecutor: ", address(snapShotExecutor));
+            return;
             safe = IGnosisSafe(MULTISIG);
             vm.startBroadcast(deployerPrivateKey);
             governanceAdapter = new FlexGovernanceAdapter(auth, address(mockDao));

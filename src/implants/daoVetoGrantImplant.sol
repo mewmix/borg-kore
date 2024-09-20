@@ -12,6 +12,7 @@ import "metavest/MetaVesTController.sol";
 
 /// @title daoVetoGrantImplan
 /// @notice This implant allows the BORG to grant time locked grants, vetoable by the DAO or authority.
+/// @author MetaLeX Labs, Inc.
 contract daoVetoGrantImplant is VetoImplant, ReentrancyGuard {
 
     // BORG Implant ID
@@ -93,6 +94,7 @@ contract daoVetoGrantImplant is VetoImplant, ReentrancyGuard {
     event ProposalExecuted(uint256 indexed proposalId);
     event ExpirationTimeUpdated(uint256 newExpirationTime);
     event MetaVesTControllerUpdated(address indexed newMetaVesTController);
+    event ProposalDeleted(uint256 indexed proposalId);
 
     // Proposal Storage and mappings
     ImplantProposal[] public currentProposals;
@@ -221,6 +223,7 @@ contract daoVetoGrantImplant is VetoImplant, ReentrancyGuard {
         }
         currentProposals.pop();
         delete proposalIndicesByProposalId[_proposalId];
+        emit ProposalDeleted(_proposalId);
     }
 
     /// @notice Function to execute a proposal

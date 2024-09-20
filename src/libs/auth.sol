@@ -8,12 +8,10 @@
 _/_/_/      _/_/    _/    _/    _/_/_/      _/    _/    _/_/        _/      _/    */ 
 pragma solidity 0.8.20;
 
-//Adapter interface for custom auth roles. Allows extensibility for different auth protocols i.e. hats.
-interface IAuthAdapter {
-    function isAuthorized(address user) external view returns (uint256);
-}
+import "../interfaces/IAuthAdapter.sol";
 
-/// @title BorgAuth
+/// @title  BorgAuth
+/// @author MetaLeX Labs, Inc.
 /// @notice ACL with extensibility for different role hierarchies and custom adapters
 contract BorgAuth {
     //cosntants built-in roles, authority works as a hierarchy

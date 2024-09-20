@@ -17,9 +17,11 @@ import "../src/libs/governance/flexGovernanceAdapater.sol";
 import "metavest/RestrictedTokenFactory.sol";
 import "metavest/TokenOptionFactory.sol";
 import "metavest/VestingAllocationFactory.sol";
+import "../src/implants/daoVoteImplant.sol";
+import "../src/implants/daoVetoImplant.sol";
 
 
-contract GrantBorgTest is Test {
+contract VoteBorgTest is Test {
   // global contract deploys for the tests
   IGnosisSafe safe;
   borgCore core;
@@ -28,6 +30,8 @@ contract GrantBorgTest is Test {
   optimisticGrantImplant opGrant;
   daoVoteGrantImplant voteGrant;
   daoVetoGrantImplant vetoGrant;
+    daoVetoImplant daoVeto;
+    daoVoteImplant daoVote;
   SignatureCondition sigCondition;
   failSafeImplant failSafe;
   MockERC20Votes govToken;
@@ -103,6 +107,9 @@ contract GrantBorgTest is Test {
     //constructor(Auth _auth, address _borgSafe, uint256 _duration, uint _quorum, uint256 _threshold, uint _cooldown, address _governanceAdapter, address _governanceExecutor, address _metaVesT, address _metaVesTController)
     vetoGrant = new daoVetoGrantImplant(auth, MULTISIG, 600, 5, 10, 600, address(governanceAdapter), address(mockDao), address(metaVesTController));
     voteGrant = new daoVoteGrantImplant(auth, MULTISIG, 0, 10, 40, address(governanceAdapter), address(mockDao), address(metaVesTController));
+    daoVeto = new daoVetoImplant(auth, MULTISIG, 600, 5, 10, 600, address(governanceAdapter), address(mockDao));
+    daoVote = new daoVoteImplant(auth, MULTISIG, 0, 10, 40, address(governanceAdapter), address(mockDao));
+
     vm.prank(dao);
     auth.updateRole(address(voteGrant), 98);
     vm.prank(dao);
@@ -111,6 +118,10 @@ contract GrantBorgTest is Test {
     auth.updateRole(address(opGrant), 98);
     vm.prank(dao);
     auth.updateRole(address(governanceAdapter), 98);
+    vm.prank(dao);
+    auth.updateRole(address(daoVeto), 98);
+    vm.prank(dao);
+    auth.updateRole(address(daoVote), 98);
 
     //create SignatureCondition.Logic for and
      SignatureCondition.Logic logic = SignatureCondition.Logic.AND;
@@ -132,10 +143,16 @@ contract GrantBorgTest is Test {
     executeSingle(getAddModule(address(opGrant)));
     executeSingle(getAddModule(address(vetoGrant)));
     executeSingle(getAddModule(address(voteGrant)));
+    executeSingle(getAddModule(address(daoVeto)));
+    executeSingle(getAddModule(address(daoVote)));
 
     //dao deploys the core, with the dao as the owner.
     vm.prank(dao);
     core.addFullAccessOrBlockContract(address(core));
+    vm.prank(dao);
+    core.addFullAccessOrBlockContract(address(daoVeto));
+    vm.prank(dao);
+    core.addFullAccessOrBlockContract(address(daoVote));
 
 
     //Set the core as the guard for the safe
@@ -171,6 +188,90 @@ contract GrantBorgTest is Test {
     opGrant.createBasicGrant(dai_addr, address(jr), 2 ether);
 
     //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+  function testVoteImplant() public {
+     //   vm.prank(owner);
+        //propose a dai transfer transaction
+        //byte code for the transfer
+        bytes memory bytecode = abi.encodeWithSignature("transfer(address,uint256)", address(jr), 2 ether);
+
+        vm.prank(MULTISIG);
+        uint256 propId = daoVote.proposeTransaction(dai_addr, 0, bytecode, "Transfer 2 DAI to jr");
+        //vote on the proposal
+        vm.prank(address(mockDao));
+        daoVote.executeProposal(propId);
+        //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+    function testFailVoteImplant() public {
+     //   vm.prank(owner);
+        //propose a dai transfer transaction
+        //byte code for the transfer
+        bytes memory bytecode = abi.encodeWithSignature("transfer(address,uint256)", address(jr), 2 ether);
+
+        vm.prank(MULTISIG);
+        uint256 propId = daoVote.proposeTransaction(dai_addr, 0, bytecode, "Transfer 2 DAI to jr");
+        //vote on the proposal
+        vm.prank(address(MULTISIG));
+        daoVote.executeProposal(propId);
+        //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+    function testFailVoteImplantChange() public {
+     //   vm.prank(owner);
+        //propose a dai transfer transaction
+        //byte code for the transfer
+        bytes memory bytecode = abi.encodeWithSignature("transfer(address,uint256)", address(jr), 2 ether);
+
+        vm.prank(MULTISIG);
+        uint256 propId = daoVote.proposeTransaction(dai_addr, 0, bytecode, "Transfer 2 DAI to jr");
+        vm.prank(address(MULTISIG));
+        daoVote.setGovernanceExecutor(address(MULTISIG));
+        //vote on the proposal
+        vm.prank(address(MULTISIG));
+        daoVote.executeProposal(propId);
+        //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+
+  function testVetoImplant() public {
+     //   vm.prank(owner);
+        //propose a dai transfer transaction
+        //byte code for the transfer
+        bytes memory bytecode = abi.encodeWithSignature("transfer(address,uint256)", address(jr), 2 ether);
+
+        vm.prank(MULTISIG);
+        uint256 vetoPropId;
+        uint256 govPropId;
+        (vetoPropId, govPropId) = daoVeto.proposeTransaction(dai_addr, 0, bytecode, "Transfer 2 DAI to jr");
+        vm.warp(block.timestamp + 600 + 8 hours + 1);
+        //vote on the proposal
+        vm.prank(address(owner));
+        daoVeto.executeProposal(govPropId);
+        //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
+  }
+
+  function testVetoImplantvetod() public {
+     //   vm.prank(owner);
+        //propose a dai transfer transaction
+        //byte code for the transfer
+        bytes memory bytecode = abi.encodeWithSignature("transfer(address,uint256)", address(jr), 2 ether);
+
+        vm.prank(MULTISIG);
+        uint256 vetoPropId;
+        uint256 govPropId;
+        (vetoPropId, govPropId) = daoVeto.proposeTransaction(dai_addr, 0, bytecode, "Transfer 2 DAI to jr");
+      //  console.log(daoVeto.currentProposals(0).id);
+        //vote on the proposal
+        vm.prank(address(mockDao));
+        daoVeto.deleteProposal(govPropId);
+
+        vm.warp(block.timestamp + 605);
+        vm.prank(address(owner));
+        vm.expectRevert();
+        daoVeto.executeProposal(govPropId);
+        //executeSingle(getCreateGrant(address(dai), address(jr), 2 ether));
   }
 
 

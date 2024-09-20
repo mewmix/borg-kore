@@ -16,10 +16,12 @@ pragma solidity 0.8.20;
 import "./baseGuard.sol";
 import "./libs/auth.sol";
 import "./interfaces/IERC4824.sol";
+import "./libs/helpers/signatureHelper.sol";
 
 /**
  * @title      BorgCore
  *
+ * @author     MetaLeX Labs, Inc.
  * @notice     The BorgCore contract is a Gnosis Safe Guard that acts as a whitelist for recipients and contracts. It allows for the
  *             whitelisting of recipients and contracts, and the setting of transaction limits for recipients. It also allows for the
  *             setting of cooldown periods for native gas transfers and contract method calls. The contract also allows for the setting of
@@ -73,6 +75,8 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
 
     uint256 public nativeCooldown = 0; // cooldown period for native gas transfers
     uint256 public lastNativeExecutionTimestamp = 0; // timestamp of the last native gas transfer
+    uint256 public directorsRequired;
+    SignatureHelper public helper;
 
     /// Identifiers
     string public id = "unnamed-borg-core"; // identifier for the BORG
@@ -125,6 +129,7 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     error BORG_CORE_NativeCooldownActive();
     error BORG_CORE_InvalidDocumentIndex();
     error BORG_CORE_CallerMustBeSafe();
+    error BORG_CORE_NotEnoughDirectorSignatures();
 
     /// Constructor
     /// @param _auth Address, BorgAuth contract address
@@ -158,6 +163,16 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     ) 
         external override onlySafe
     {
+        // If Directors are required, check the signatures and guardian threshold
+        // This will only check up to the threshold number of signers maximum, no other signatures will be verified
+        if (directorsRequired > 0) {
+            if(!_checkDirectorsSignatures(
+                SignatureHelper.TransactionDetails(
+                    to, value, data, operation, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver
+                ),
+                signatures
+            )) revert BORG_CORE_NotEnoughDirectorSignatures();
+        }
         if(borgMode == borgModes.unrestricted) return;
         else if(borgMode == borgModes.blacklist) {
             //blacklist native eth mode
@@ -239,6 +254,22 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
     /// @dev This is post transaction execution. We can react but cannot revert what just occured.
     function checkAfterExecution(bytes32 txHash, bool success) external view override {
      
+    }
+
+    /// @dev sets the Signature Helper contract to be used for guardian signature verification
+    /// @param _helper SignatureHelper, the address of the SignatureHelper contract
+    function setSignatureHelper(SignatureHelper _helper) external onlyOwner {
+        if(address(_helper) == address(0)) revert BORG_CORE_InvalidContract();
+        _helper.getChainId();
+        helper = _helper;
+    }
+
+    /// @dev sets the number of Directors required for a transaction
+    /// @param _directorsRequired uint256, the number of Directors required
+    function setDirectorsRequired(uint256 _directorsRequired) public onlyOwner {
+        if(helper == SignatureHelper(address(0))) revert BORG_CORE_InvalidContract();
+        if(_directorsRequired>helper.getThreshold(safe)) revert BORG_CORE_InvalidParam();
+        directorsRequired = _directorsRequired;
     }
 
     /// @dev add recipient address and transaction limit to the policy recipients
@@ -720,6 +751,24 @@ contract borgCore is BaseGuard, BorgAuthACL, IEIP4824 {
 
         emit ParameterConstraintAdded(_contract, _methodSignature, _byteOffset, _paramType, _minValue, _maxValue, _iminValue, _imaxValue, _exactMatch, _byteOffset, _byteLength);
     }
+
+    /// @dev Internal function to check the guardian signatures for a transaction
+    /// @param txDetails TransactionDetails, the details of the transaction
+    /// @param signatures bytes, the signatures of the guardians
+     function _checkDirectorsSignatures(
+        SignatureHelper.TransactionDetails memory txDetails,
+        bytes calldata signatures
+    ) internal view returns (bool) {
+        address[] memory signers = helper.getSigners(txDetails, signatures, safe);
+        uint256 signedCount = 0;
+        for (uint256 i = 0; i < signers.length; i++) {
+            if (BorgAuth(AUTH).userRoles(signers[i]) >= 97) {
+                signedCount++;
+            }
+        }
+        return signedCount >= directorsRequired;
+    }
+
 
     /// @dev Interanl function to check the cooldown period for a contract method
     /// @param _contract address, the address of the contract
