@@ -197,8 +197,10 @@ contract daoVoteImplant is VoteImplant, ReentrancyGuard {
             );
             governanceProposalDetails[governanceProposalId] =
                 governanceProposalDetail(targets, values, proposalBytecodes, keccak256(abi.encodePacked(_desc)));
+            emit PendingProposalCreated(_proposalId, governanceProposalId);
         } else {
             // No onchain governance configured.
+            emit PendingProposalCreated(_proposalId, 0);
             return 0;
         }
     }

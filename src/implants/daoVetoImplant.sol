@@ -68,6 +68,7 @@ contract daoVetoImplant is VetoImplant, ReentrancyGuard {
     error daoVetoImplant_ProposalNotFound();
     error daoVetoImplant_NotAuthorized();
     error daoVetoImplant_ZeroAddress();
+    error daoVetoGrantImplant_CallerNotBORGMember();
 
     event CooldownUpdated(uint256 newCooldown);
     event GracePeriodUpdated(uint256 newGracePeriod);
@@ -190,7 +191,7 @@ contract daoVetoImplant is VetoImplant, ReentrancyGuard {
     {   
         if(!ISafe(BORG_SAFE).isOwner(msg.sender))
             revert daoVetoGrantImplant_CallerNotBORGMember();
-            
+
         ImplantProposal memory proposal = _getProposal(_proposalId);
 
         if(proposal.startTime + proposal.duration + gracePeriod > block.timestamp)
