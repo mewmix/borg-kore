@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import "./BaseRecoveryHook.sol";
 import "../../interfaces/ISafe.sol";
 
-/// @title TimeCondition - A condition that checks if the current time is before or after a target time
+/// @title ExampleRecoveryHookRevert
 contract ExampleRecoveryHookRevert is BaseRecoveryHook {
 
     error Example_Error();

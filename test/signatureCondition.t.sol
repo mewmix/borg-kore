@@ -248,7 +248,7 @@ function testSign_AllSigners_AndLogic() public {
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr,1,false);
+    eject.ejectOwner(jr);
     assertEq(safe.isOwner(address(jr)), true);
   }
 

@@ -96,7 +96,7 @@ contract PBVBorgTest is Test {
 
    function testDAOEject() public {
     vm.prank(dao);
-    eject.ejectOwner(address(jr), 1, false);
+    eject.ejectOwner(address(jr));
     assertEq(safe.isOwner(address(jr)), false);
   }
 
@@ -108,7 +108,7 @@ contract PBVBorgTest is Test {
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr, 1, false);
+    eject.ejectOwner(jr);
     assertEq(safe.isOwner(address(jr)), true);
   }
 

@@ -11,7 +11,6 @@ import "../src/libs/conditions/signatureCondition.sol";
 import "../src/implants/failSafeImplant.sol";
 import "./libraries/mocks/MockGovToken.sol";
 import "./libraries/mocks/FlexGov.sol";
-import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
 import "metavest/RestrictedTokenFactory.sol";
@@ -96,7 +95,7 @@ contract VoteBorgTest is Test {
     TokenOptionFactory tokenOptionFactory = new TokenOptionFactory();
     RestrictedTokenFactory restrictedTokenFactory = new RestrictedTokenFactory();
 
-    metaVesTController = new metavestController(MULTISIG, voting_auth, address(govToken), address(vestingFactory), address(tokenOptionFactory), address(restrictedTokenFactory));
+    metaVesTController = new metavestController(MULTISIG, voting_auth, address(vestingFactory), address(tokenOptionFactory), address(restrictedTokenFactory));
     controllerAddr = address(metaVesTController);
 
     safe = IGnosisSafe(MULTISIG);
@@ -745,7 +744,7 @@ function testVetodAdvancedVetoGrant() public {
     vm.prank(owner);
     sigCondition.sign();
     vm.prank(dao);
-    eject.ejectOwner(address(jr), 1, false);
+    eject.ejectOwner(address(jr));
     assertEq(safe.isOwner(address(jr)), false);
   }
 
@@ -757,7 +756,7 @@ function testVetodAdvancedVetoGrant() public {
 
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr, 1, false);
+    eject.ejectOwner(jr);
     assertEq(safe.isOwner(address(jr)), true);
   }
 

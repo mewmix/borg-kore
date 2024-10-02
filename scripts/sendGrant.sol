@@ -11,7 +11,6 @@ import "../src/libs/conditions/signatureCondition.sol";
 import "../src/implants/failSafeImplant.sol";
 import "../test/libraries/mocks/MockGovToken.sol";
 import "../test/libraries/mocks/FlexGov.sol";
-import "metavest/MetaVesT.sol";
 import "metavest/MetaVesTController.sol";
 import "../src/libs/governance/flexGovernanceAdapater.sol";
 import "../test/libraries/safe.t.sol";

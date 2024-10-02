@@ -95,7 +95,7 @@ contract EjectTest is Test {
     function testAddOwner() public {
        // address newOwner = address(0x123);
         vm.prank(dao);
-        eject.addOwner(vip, 1);
+        eject.addOwner(vip);
         assertEq(safe.isOwner(vip), true);
     }
 
@@ -103,7 +103,7 @@ contract EjectTest is Test {
     function testChangeThreshold() public {
         uint256 newThreshold = 2;
         vm.prank(dao);
-        eject.changeThreshold(newThreshold);
+        eject.changeThreshold(2);
         assertEq(safe.getThreshold(), newThreshold);
     }
 
@@ -128,7 +128,7 @@ contract EjectTest is Test {
         // Assuming conditions are not met
         vm.expectRevert(ejectImplant.ejectImplant_ConditionsNotMet.selector);
         vm.prank(dao);
-        eject.ejectOwner(jr, 1, false);
+        eject.ejectOwner(jr);
     }
 
     /// @dev Test failing to change threshold when conditions are not met
@@ -167,32 +167,32 @@ contract EjectTest is Test {
 
   function testEjection() public { 
     vm.prank(dao);
-    eject.ejectOwner(tester2, 1, false);
+    eject.ejectOwner(tester2);
     assertEq(safe.isOwner(address(tester2)), false);
     vm.prank(dao);
-    eject.ejectOwner(jr, 1, false);
+    eject.ejectOwner(jr);
     assertEq(safe.isOwner(address(jr)), false);
     vm.prank(dao);
-    eject.ejectOwner(tester, 1, false);
+    eject.ejectOwner(tester);
     assertEq(safe.isOwner(address(tester)), false);
     vm.prank(dao);
-    eject.ejectOwner(owner, 1, false);
+    eject.ejectOwner(owner);
     assertEq(safe.isOwner(address(owner)), false);
   }
 
   function testEjectionWithRecovery() public {
 
     vm.prank(dao);
-    eject.setFailSafeSignerThreshold(3);
+    eject.changeThreshold(3);
 
     vm.prank(dao);
-    eject.ejectOwner(tester2, 2, true);
+    eject.ejectOwner(tester2, 1, true);
    
   }
     
     function testSelfEjectWithRecovery() public {
     vm.prank(dao);
-    eject.setFailSafeSignerThreshold(6);
+    eject.changeThreshold(6);
 
     vm.prank(owner);
     eject.selfEject(true);

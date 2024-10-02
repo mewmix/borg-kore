@@ -93,7 +93,7 @@ contract BorgCoreTest is Test {
     //jr cannot use the ejectOwner method bc he doesn't have ACL in the contract, can only selfEject
     function testFailejectNotApproved() public {
     vm.prank(jr);
-    eject.ejectOwner(jr, 1, false);
+    eject.ejectOwner(jr);
     assertEq(safe.isOwner(address(jr)), true);
   }
 
