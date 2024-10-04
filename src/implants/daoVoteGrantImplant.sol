@@ -131,8 +131,8 @@ contract daoVoteGrantImplant is VoteImplant, ReentrancyGuard {
         address _metaVestController
     ) BaseImplant(_auth, _borgSafe) {
          if(_metaVestController == address(0)) revert daoVoteGrantImplant_ZeroAddress();  
-        if(duration > MAX_PROPOSAL_DURATION)
-            duration = MAX_PROPOSAL_DURATION;
+        if(_duration > MAX_PROPOSAL_DURATION)
+            _duration = MAX_PROPOSAL_DURATION;
         duration = _duration;
         quorum = _quorum;
         threshold = _threshold;

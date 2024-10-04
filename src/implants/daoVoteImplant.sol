@@ -85,13 +85,6 @@ contract daoVoteImplant is VoteImplant, ReentrancyGuard {
         _;
     }
 
-    /// @notice Similar to declaring a function as `internal` but only works
-    ///         .call() from within this contract.
-    modifier onlyThis() {
-        if (msg.sender != address(this)) revert daoVoteImplant_NotAuthorized();
-        _;
-    }
-
     /// @notice Constructor
     /// @param _auth - The BorgAuth contract address
     /// @param _borgSafe - The BORG Safe contract address
@@ -109,8 +102,8 @@ contract daoVoteImplant is VoteImplant, ReentrancyGuard {
         address _governanceAdapter,
         address _governanceExecutor
     ) BaseImplant(_auth, _borgSafe) {
-        if(duration > MAX_PROPOSAL_DURATION)
-            duration = MAX_PROPOSAL_DURATION;
+        if(_duration > MAX_PROPOSAL_DURATION)
+            _duration = MAX_PROPOSAL_DURATION;
         duration = _duration;
         quorum = _quorum;
         threshold = _threshold;

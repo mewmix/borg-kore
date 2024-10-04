@@ -86,11 +86,6 @@ contract daoVetoImplant is VetoImplant, ReentrancyGuard {
     mapping(uint256 => proposalDetail) public vetoProposals;
     mapping(uint256 => uint256) internal proposalIndicesByProposalId;
 
-    modifier onlyThis() {
-        if(msg.sender != address(this)) revert daoVetoImplant_NotAuthorized();
-        _;
-    }
-
     modifier onlyBorg() {
         if(BORG_SAFE!=msg.sender) revert daoVetoImplant_CallerNotBORG();
         _;
@@ -249,5 +244,7 @@ contract daoVetoImplant is VetoImplant, ReentrancyGuard {
         } else {
             emit PendingProposalCreated(newProposalId, 0);
         }
+
+        lastProposalTime = block.timestamp;
     }
 }
